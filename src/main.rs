@@ -36,20 +36,17 @@ enum Instructions {
     If(Vec<Option<Instruction>>)
 }
 
-const SYMBOLS: [char; 8] = [
-    '+',
-    '-',
-    '.',
-    '=',
-    '<',
-    '>',
-    '*',
-    '/'
-];
-
-const KEYWORDS: [&str; 2] = [
+const KEYWORDS: [&str; 10] = [
     "if",
-    "end"
+    "end",
+    "+",
+    "-",
+    ".",
+    "=",
+    "<",
+    ">",
+    "*",
+    "/"
 ];
 
 #[derive(Debug)]
@@ -80,11 +77,7 @@ impl Lexer {
             }
         }
     }
-
-    fn is_operation(c: char) -> bool {
-        return SYMBOLS.contains(&c);
-    }
-
+    
     fn get_keyword(&mut self, current_char: char) -> Option<String> {
         let mut token: String = current_char.to_string();
         self.get_next_char_while(&mut token, Self::is_alphanumeric);
@@ -120,25 +113,19 @@ impl Iterator for Lexer {
                 None => return None,
             }
 
-            if Self::is_operation(first_char) {
-                match first_char {
-                    '+' => return Some(Operation::new(OpCodes::ADD, None)),
-                    '-' => return Some(Operation::new(OpCodes::SUB, None)),
-                    '.' => return Some(Operation::new(OpCodes::POP, None)),
-                    '=' => return Some(Operation::new(OpCodes::EQ, None)),
-                    '<' => return Some(Operation::new(OpCodes::LT, None)),
-                    '>' => return Some(Operation::new(OpCodes::GT, None)),
-                    '*' => return Some(Operation::new(OpCodes::MULT, None)),
-                    '/' => return Some(Operation::new(OpCodes::DIV, None)),
-                    _ => panic!("impossible edge case")
-                }
-            }
-
-            else if let Some(token) = self.get_keyword(first_char) {
+            if let Some(token) = self.get_keyword(first_char) {
                 match token.as_str() {
                     "if" => return Some(Operation::new(OpCodes::IF, None)),
                     "end" => return Some(Operation::new(OpCodes::END, None)),
-                    _ => return None
+                    "+" => return Some(Operation::new(OpCodes::ADD, None)),
+                    "-" => return Some(Operation::new(OpCodes::SUB, None)),
+                    "." => return Some(Operation::new(OpCodes::POP, None)),
+                    "=" => return Some(Operation::new(OpCodes::EQ, None)),
+                    "<" => return Some(Operation::new(OpCodes::LT, None)),
+                    ">" => return Some(Operation::new(OpCodes::GT, None)),
+                    "*" => return Some(Operation::new(OpCodes::MULT, None)),
+                    "/" => return Some(Operation::new(OpCodes::DIV, None)),
+                    _ => panic!("impossible edge case")
                 }
             }
 
