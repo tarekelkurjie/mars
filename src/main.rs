@@ -191,7 +191,10 @@ impl Iterator for Lexer {
             }
 
             else if first_char.is_numeric() {
-                return Some(Operation::new(OpCodes::PUSH, Some(self.get_numeric(first_char).parse::<i32>().unwrap())))
+                return Some(Operation::new(OpCodes::PUSH,
+                                           Some(self.get_numeric(first_char)
+                                               .parse::<i32>()
+                                               .unwrap())))
             }
         }
     }
@@ -240,16 +243,31 @@ impl Parser {
                                             None => continue
                                         }
                                     }
-                                    return Some(Instruction::new(Instructions::If(IfElse::new(if_block, else_block)), None));
+                                    return Some(Instruction::new(
+                                        Instructions::If(
+                                            IfElse::new(
+                                                if_block, else_block
+                                            )
+                                        ), None));
                                 } else if j.OpCode == OpCodes::END {
-                                    return Some(Instruction::new(Instructions::If(IfElse::new(if_block, else_block)), None));
+                                    return Some(Instruction::new(
+                                        Instructions::If(
+                                            IfElse::new(
+                                                if_block, else_block
+                                            )
+                                        ), None));
                                 }
                             }
                         },
                         _ => continue
                     }
                 } 
-                return Some(Instruction::new(Instructions::If(IfElse::new(if_block, else_block)), None));
+                return Some(Instruction::new(
+                    Instructions::If(
+                        IfElse::new(
+                            if_block, else_block
+                        )
+                    ), None));
             },
             OpCodes::END => {
                 eprintln!("ERROR: 'end' statement found without matching block");
