@@ -2,7 +2,7 @@
 **Stack-based interpereted language implemented in rust**
 
 ## To-Do
-- [ ] Implement all basic programming uses (if/else, loops, functions, etc)
+- [ ] Implement all basic programming uses (if/else, loops, variables, functions, etc)
 - [ ] Better error handling
 - [ ] Implement string literals
 - [ ] Implement import/export system (either simple C-like 'include' or a module system)
@@ -78,4 +78,6 @@ else
   9 .
 end
 ```
+*Note: 'if' pops top of stack, regardless of whether or not it is a binary boolean*
+
 *ELSE NOT IMPLENTED YET*
