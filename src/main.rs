@@ -183,7 +183,7 @@ impl Iterator for Lexer {
                         "*" => return Some(Operation::new(OpCodes::MULT, None)),
                         "/" => return Some(Operation::new(OpCodes::DIV, None)),
                         _ => {
-                            eprintln!("Unknown token {}", token);
+                            eprintln!("ERROR: Unknown token {}", token);
                             std::process::exit(1);
                         }
                     }
