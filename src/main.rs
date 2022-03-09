@@ -13,6 +13,8 @@ enum OpCodes {
     POP,
     ADD,
     SUB,
+    MULT,
+    DIV,
     EQ,
     LT,
     GT,
@@ -26,19 +28,23 @@ enum Instructions {
     POP,
     ADD,
     SUB,
+    MULT,
+    DIV,
     EQ,
     LT,
     GT,
     If(Vec<Option<Instruction>>)
 }
 
-const SYMBOLS: [char; 6] = [
+const SYMBOLS: [char; 8] = [
     '+',
     '-',
     '.',
     '=',
     '<',
-    '>'
+    '>',
+    '*',
+    '/'
 ];
 
 const KEYWORDS: [&str; 2] = [
@@ -122,6 +128,8 @@ impl Iterator for Lexer {
                     '=' => return Some(Operation::new(OpCodes::EQ, None)),
                     '<' => return Some(Operation::new(OpCodes::LT, None)),
                     '>' => return Some(Operation::new(OpCodes::GT, None)),
+                    '*' => return Some(Operation::new(OpCodes::MULT, None)),
+                    '/' => return Some(Operation::new(OpCodes::DIV, None)),
                     _ => panic!("impossible edge case")
                 }
             }
@@ -197,6 +205,8 @@ impl Parser {
             OpCodes::EQ => return Some(Instruction::new(Instructions::EQ, None)),
             OpCodes::LT => return Some(Instruction::new(Instructions::LT, None)),
             OpCodes::GT => return Some(Instruction::new(Instructions::GT, None)),
+            OpCodes::MULT => return Some(Instruction::new(Instructions::MULT, None)),
+            OpCodes::DIV => return Some(Instruction::new(Instructions::DIV, None)),
             OpCodes::IF => {
                 let mut contents: Vec<Option<Instruction>> = Vec::new();
                 while let Some(i) = self.operations.next() {
@@ -208,8 +218,8 @@ impl Parser {
                     }
                 } 
                 return Some(Instruction::new(Instructions::If(contents), None));
-            }
-            _ => return None
+            },
+            OpCodes::END => return None,
         }
     }
 }
@@ -218,18 +228,15 @@ impl Iterator for Parser {
     type Item = Instruction;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let op: Operation;
-
         loop {
             match self.operations.next() {
                 Some(i) => {
                     if let Some(j) = i {
-                        op = j;
                         return self.gen_instruction_from_op(j);
                     }
                     
                 },
-                _ => return None 
+                None => return None 
                 
             }
         }
@@ -253,6 +260,16 @@ fn evaluate_instruction(instruction: &Instruction, stack: &mut Vec<i32>) {
             let first_val = stack.pop().expect("Insufficient data on the stack");
             let second_val = stack.pop().expect("Insufficient data on the stack");
             stack.push(first_val - second_val);
+        },
+        Instructions::MULT => {
+            let first_val = stack.pop().expect("Insufficient data on the stack");
+            let second_val = stack.pop().expect("Insufficient data on the stack");
+            stack.push(first_val * second_val);
+        },
+        Instructions::DIV => {
+            let first_val = stack.pop().expect("Insufficient data on the stack");
+            let second_val = stack.pop().expect("Insufficient data on the stack");
+            stack.push(first_val / second_val);
         },
         Instructions::EQ => {
             let first_val = stack.pop().expect("Insufficient data on the stack");
@@ -312,6 +329,11 @@ fn simulate(stack: &mut Vec<i32>, instructions: Vec<Option<Instruction>>) {
 fn main() {
     let args: Vec<String> = env::args().collect();
 
+    if args.len() != 2 {
+        eprintln!("Usage: cargo run <filepath>");
+        std::process::exit(1);
+    }
+
     let mut operations: Vec<Option<Operation>> = Vec::new();
     let mut stack: Vec<i32> = Vec::new();
 
@@ -321,7 +343,7 @@ fn main() {
         operations.push(Some(token));
     }
 
-    let mut parse = Parser::new(operations.into_iter());
+    let parse = Parser::new(operations.into_iter());
 
     let mut instructions = Vec::new();
 
@@ -330,5 +352,4 @@ fn main() {
     }
 
     simulate(&mut stack, instructions)
-    
 }
