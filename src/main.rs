@@ -19,6 +19,7 @@ enum OpCodes {
     LT,
     GT,
     IF,
+    ELSE,
     END
 }
 
@@ -33,11 +34,59 @@ enum Instructions {
     EQ,
     LT,
     GT,
-    If(Vec<Option<Instruction>>)
+    If(IfElse)
 }
 
-const KEYWORDS: [&str; 10] = [
+#[derive(Copy, Clone)]
+#[derive(PartialEq)]
+#[derive(Debug)]
+struct Operation {
+    OpCode: OpCodes,
+    Contents: Option<i32>
+}
+
+impl Operation {
+    fn new(opcode: OpCodes, contents: Option<i32>) -> Self {
+        Operation {
+            OpCode: opcode,
+            Contents: contents
+        }
+    }
+}
+
+#[derive(Debug)]
+struct Instruction {
+    Instruction: Instructions,
+    Contents: Option<i32>
+}
+
+impl Instruction {
+    fn new(instr: Instructions, contents: Option<i32>) -> Self {
+        Instruction {
+            Instruction: instr,
+            Contents: contents
+        }
+    }
+}
+
+#[derive(Debug)]
+struct IfElse {
+    If: Option<Vec<Option<Instruction>>>,
+    Else: Option<Vec<Option<Instruction>>>
+}
+
+impl IfElse {
+    fn new(IfBlock: Vec<Option<Instruction>>, ElseBlock: Vec<Option<Instruction>>) -> Self {
+        IfElse {
+            If: Some(IfBlock),
+            Else: Some(ElseBlock)
+        }
+    }
+}
+
+const KEYWORDS: [&str; 11] = [
     "if",
+    "else",
     "end",
     "+",
     "-",
@@ -79,7 +128,7 @@ impl Lexer {
         }
         return res
     }
-    
+
     fn get_keyword(&mut self, current_char: char) -> Option<String> {
         let mut token: String = current_char.to_string();
         token = self.get_next_char_while(token, Self::is_alphanumeric);
@@ -143,38 +192,6 @@ impl Iterator for Lexer {
     }
 }
 
-#[derive(Copy, Clone)]
-#[derive(PartialEq)]
-#[derive(Debug)]
-struct Operation {
-    OpCode: OpCodes,
-    Contents: Option<i32>
-}
-
-impl Operation {
-    fn new(opcode: OpCodes, contents: Option<i32>) -> Self {
-        return Operation {
-            OpCode: opcode,
-            Contents: contents
-        }
-    }
-}
-
-#[derive(Debug)]
-struct Instruction {
-    Instruction: Instructions,
-    Contents: Option<i32>
-}
-
-impl Instruction {
-    fn new(instr: Instructions, contents: Option<i32>) -> Self {
-        return Instruction {
-            Instruction: instr,
-            Contents: contents
-        }
-    }
-}
-
 
 struct Parser {
     operations: IntoIter<Option<Operation>>
@@ -199,18 +216,44 @@ impl Parser {
             OpCodes::MULT => return Some(Instruction::new(Instructions::MULT, None)),
             OpCodes::DIV => return Some(Instruction::new(Instructions::DIV, None)),
             OpCodes::IF => {
-                let mut contents: Vec<Option<Instruction>> = Vec::new();
+                let mut if_block: Vec<Option<Instruction>> = Vec::new();
+                let mut else_block: Vec<Option<Instruction>> = Vec::new();
                 while let Some(i) = self.operations.next() {
                     match i {
                         Some(j) => {
-                            contents.push(self.gen_instruction_from_op(j))
+                            if j.OpCode != OpCodes::END && j.OpCode != OpCodes::ELSE {
+                                if_block.push(self.gen_instruction_from_op(j))
+                            } else {
+                                if j.OpCode == OpCodes::ELSE {
+                                    while let Some(x) = self.operations.next() {
+                                        match x {
+                                            Some(y) => {
+                                                if y.OpCode != OpCodes::END {
+                                                    else_block.push(self.gen_instruction_from_op(y));
+                                                } else {break;}
+                                            },
+                                            None => continue
+                                        }
+                                    }
+                                    return Some(Instruction::new(Instructions::If(IfElse::new(if_block, else_block)), None));
+                                } else if j.OpCode == OpCodes::END {
+                                    return Some(Instruction::new(Instructions::If(IfElse::new(if_block, else_block)), None));
+                                }
+                            }
                         },
                         _ => continue
                     }
                 } 
-                return Some(Instruction::new(Instructions::If(contents), None));
+                return Some(Instruction::new(Instructions::If(IfElse::new(if_block, else_block)), None));
             },
-            OpCodes::END => return None,
+            OpCodes::END => {
+                eprintln!("ERROR: 'end' statement found without matching block");
+                std::process::exit(1);
+            },
+            OpCodes::ELSE => {
+                eprintln!("ERROR: 'else' statement found without match 'if'");
+                std::process::exit(1);
+            }
         }
     }
 }
@@ -289,17 +332,28 @@ fn evaluate_instruction(instruction: &Instruction, stack: &mut Vec<i32>) {
                 stack.push(0);
             }
         }
-        Instructions::If(nested_instructions) => {
+        Instructions::If(nested_struct) => {
             match stack.pop().expect("No binary condition found") {
                 1 => {
-                    for i in 0..nested_instructions.len() {
-                        if let Some(i) = nested_instructions[i].as_ref() {
-                            let instruction = i;
-                            evaluate_instruction(&instruction, stack)
+                    for i in nested_struct.If.as_ref().unwrap() {
+                        if let Some(j) = i {
+                            evaluate_instruction(&j, stack)
                         }
                     }
                 },
-                0 => return,
+                0 => {
+                    if let Some(instr) = nested_struct.Else.as_ref() {
+                        if instr.len() > 0 {
+                            for i in instr {
+                                if let Some(j) = i {
+                                    evaluate_instruction(&j, stack)
+                                }
+                            }
+                        }
+                    } else {
+                        return;
+                    }
+                },
                 _ => panic!("Binary boolean not found")
             }
         }
@@ -334,6 +388,8 @@ fn main() {
         operations.push(Some(token));
     }
 
+    // println!("{:?}", operations);
+
     let parse = Parser::new(operations.into_iter());
 
     let mut instructions = Vec::new();
@@ -343,4 +399,5 @@ fn main() {
     }
 
     simulate(&mut stack, instructions)
+    // println!("{:?}", instructions);
 }
