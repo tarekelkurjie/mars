@@ -243,8 +243,14 @@ impl Parser {
                 } 
                 return Some(Instruction::new(Instructions::If(IfElse::new(if_block, else_block)), None));
             },
-            OpCodes::END => return None,
-            OpCodes::ELSE => return None
+            OpCodes::END => {
+                eprintln!("ERROR: 'end' statement found without matching block");
+                std::process::exit(1);
+            },
+            OpCodes::ELSE => {
+                eprintln!("ERROR: 'else' statement found without match 'if'");
+                std::process::exit(1);
+            }
         }
     }
 }
