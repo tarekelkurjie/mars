@@ -3,6 +3,8 @@
 
 ## To-Do
 - [ ] Implement all basic programming uses (if/else, loops, functions, etc)
+- [ ] Better error handling
+- [ ] Implement string literals
 - [ ] Implement import/export system (either simple C-like 'include' or a module system)
 - [ ] Write a compiler
 - [ ] Write a standard library
