@@ -84,10 +84,10 @@ end
 
 *These are all future plans to be implemented in the future*
 
-**Variables are declared with the 'var' keyword, followed by the name of the variable, followed by a set of instructions that will be evaluated similarly to if they were independent of a variable. Variable definitions end with the 'end' keyword**
+**Variables are declared with the '@' token, followed by the name of the variable, followed by a set of instructions that will be evaluated similarly to if they were independent of a variable. Variable definitions end with the 'def' keyword which assigns the top stack value to the variable name**
 
 ```
-var my_var 1 2 * 6 + end
+@my_var 42 def
 my_var .
 ```
 
