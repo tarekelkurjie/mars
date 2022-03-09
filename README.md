@@ -80,4 +80,15 @@ end
 ```
 *Note: 'if' pops top of stack, regardless of whether or not it is a binary boolean*
 
-*ELSE NOT IMPLENTED YET*
+### Variables NOT YET IMPLEMENTED
+
+*These are all future plans to be implemented in the future*
+
+**Variables are declared with the 'var' keyword, followed by the name of the variable, followed by a set of instructions that will be evaluated similarly to if they were independent of a variable. Variable definitions end with the 'end' keyword**
+
+```
+var my_var 1 2 * 6 + end
+my_var .
+```
+
+*(prints 12 to the standard ouptut)*
