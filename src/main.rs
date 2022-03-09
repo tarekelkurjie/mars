@@ -115,21 +115,23 @@ impl Lexer {
         Ok(Self::from_text(&fs::read_to_string(file_path)?))
     }
 
-    fn get_next_char_while(&mut self, raw_token: &mut String, cond: fn(char) -> bool) {
+    fn get_next_char_while(&mut self, raw_token: String, cond: fn(char) -> bool) -> String {
+        let mut res = raw_token;
         loop {
             match self.raw_data.peek() {
                 Some(c) if cond(*c) => {
-                    raw_token.push(*c);
+                    res.push(*c);
                     self.raw_data.next();
                 }
                 _ => break,
-            }
+            }  
         }
+        return res
     }
 
     fn get_keyword(&mut self, current_char: char) -> Option<String> {
         let mut token: String = current_char.to_string();
-        self.get_next_char_while(&mut token, Self::is_alphanumeric);
+        token = self.get_next_char_while(token, Self::is_alphanumeric);
         
         if KEYWORDS.contains(&token.as_str()) {
             return Some(token);
@@ -142,8 +144,11 @@ impl Lexer {
         return c.is_alphanumeric();
     }
 
-    fn is_numeric(c: char) -> bool {
-        return c.is_numeric();
+    fn get_numeric(&mut self, c: char) -> String {
+        let mut res: String = c.to_string();
+        res = self.get_next_char_while(res, |c| c.is_numeric());
+
+        return res
     }
 }
 
@@ -162,28 +167,26 @@ impl Iterator for Lexer {
                 None => return None,
             }
 
-            if let Some(token) = self.get_keyword(first_char) {
-                match token.as_str() {
-                    "if" => return Some(Operation::new(OpCodes::IF, None)),
-                    "else" => return Some(Operation::new(OpCodes::ELSE, None)),
-                    "end" => return Some(Operation::new(OpCodes::END, None)),
-                    "+" => return Some(Operation::new(OpCodes::ADD, None)),
-                    "-" => return Some(Operation::new(OpCodes::SUB, None)),
-                    "." => return Some(Operation::new(OpCodes::POP, None)),
-                    "=" => return Some(Operation::new(OpCodes::EQ, None)),
-                    "<" => return Some(Operation::new(OpCodes::LT, None)),
-                    ">" => return Some(Operation::new(OpCodes::GT, None)),
-                    "*" => return Some(Operation::new(OpCodes::MULT, None)),
-                    "/" => return Some(Operation::new(OpCodes::DIV, None)),
-                    _ => panic!("impossible edge case")
+            if !first_char.is_numeric() {
+                if let Some(token) = self.get_keyword(first_char) {
+                    match token.as_str() {
+                        "if" => return Some(Operation::new(OpCodes::IF, None)),
+                        "end" => return Some(Operation::new(OpCodes::END, None)),
+                        "+" => return Some(Operation::new(OpCodes::ADD, None)),
+                        "-" => return Some(Operation::new(OpCodes::SUB, None)),
+                        "." => return Some(Operation::new(OpCodes::POP, None)),
+                        "=" => return Some(Operation::new(OpCodes::EQ, None)),
+                        "<" => return Some(Operation::new(OpCodes::LT, None)),
+                        ">" => return Some(Operation::new(OpCodes::GT, None)),
+                        "*" => return Some(Operation::new(OpCodes::MULT, None)),
+                        "/" => return Some(Operation::new(OpCodes::DIV, None)),
+                        _ => panic!("impossible edge case")
+                    }
                 }
             }
 
             else if first_char.is_numeric() {
-                let mut num: String = String::from(first_char);
-
-                self.get_next_char_while(&mut num, Self::is_numeric);
-                return Some(Operation::new(OpCodes::PUSH, Some(num.parse::<i32>().unwrap())))
+                return Some(Operation::new(OpCodes::PUSH, Some(self.get_numeric(first_char).parse::<i32>().unwrap())))
             }
         }
     }
