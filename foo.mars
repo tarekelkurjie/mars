@@ -1,5 +1,9 @@
-1 2 3 * 6 =
-    1 = if
+2 2 = if
+    2 3 = if
+        6 .
+    else
         8 .
     end
+else
+    5 .
 end
