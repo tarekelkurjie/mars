@@ -169,9 +169,11 @@ impl Iterator for Lexer {
 
             if !first_char.is_numeric() {
                 if let Some(token) = self.get_keyword(first_char) {
+                    println!("{:?}", token);
                     match token.as_str() {
                         "if" => return Some(Operation::new(OpCodes::IF, None)),
                         "end" => return Some(Operation::new(OpCodes::END, None)),
+                        "else" => return Some(Operation::new(OpCodes::ELSE, None)),
                         "+" => return Some(Operation::new(OpCodes::ADD, None)),
                         "-" => return Some(Operation::new(OpCodes::SUB, None)),
                         "." => return Some(Operation::new(OpCodes::POP, None)),
@@ -180,7 +182,10 @@ impl Iterator for Lexer {
                         ">" => return Some(Operation::new(OpCodes::GT, None)),
                         "*" => return Some(Operation::new(OpCodes::MULT, None)),
                         "/" => return Some(Operation::new(OpCodes::DIV, None)),
-                        _ => panic!("impossible edge case")
+                        _ => {
+                            eprintln!("Unknown token {}", token);
+                            std::process::exit(1);
+                        }
                     }
                 }
             }
