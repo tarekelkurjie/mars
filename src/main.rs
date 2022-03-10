@@ -20,7 +20,9 @@ enum OpCodes {
     GT,
     IF,
     ELSE,
-    END
+    WHILE,
+    END,
+    DO
 }
 
 #[derive(Debug)]
@@ -34,7 +36,8 @@ enum Instructions {
     EQ,
     LT,
     GT,
-    If(IfElse)
+    If(IfElse),
+    While(While)
 }
 
 #[derive(Copy, Clone)]
@@ -70,6 +73,21 @@ impl Instruction {
 }
 
 #[derive(Debug)]
+struct While {
+    Cond: Vec<Option<Instruction>>,
+    Contents: Vec<Option<Instruction>>
+}
+
+impl While {
+    fn new(cond: Vec<Option<Instruction>>, contents: Vec<Option<Instruction>>) -> Self {
+        While {
+            Cond: cond,
+            Contents: contents
+        }
+    }
+}
+
+#[derive(Debug)]
 struct IfElse {
     If: Option<Vec<Option<Instruction>>>,
     Else: Option<Vec<Option<Instruction>>>
@@ -84,10 +102,12 @@ impl IfElse {
     }
 }
 
-const KEYWORDS: [&str; 11] = [
+const KEYWORDS: [&str; 13] = [
     "if",
     "else",
+    "while",
     "end",
+    "do",
     "+",
     "-",
     ".",
@@ -169,11 +189,12 @@ impl Iterator for Lexer {
 
             if !first_char.is_numeric() {
                 if let Some(token) = self.get_keyword(first_char) {
-                    println!("{:?}", token);
                     match token.as_str() {
                         "if" => return Some(Operation::new(OpCodes::IF, None)),
-                        "end" => return Some(Operation::new(OpCodes::END, None)),
                         "else" => return Some(Operation::new(OpCodes::ELSE, None)),
+                        "while" => return Some(Operation::new(OpCodes::WHILE, None)),
+                        "end" => return Some(Operation::new(OpCodes::END, None)),
+                        "do" => return Some(Operation::new(OpCodes::DO, None)),
                         "+" => return Some(Operation::new(OpCodes::ADD, None)),
                         "-" => return Some(Operation::new(OpCodes::SUB, None)),
                         "." => return Some(Operation::new(OpCodes::POP, None)),
@@ -269,12 +290,56 @@ impl Parser {
                         )
                     ), None));
             },
+            OpCodes::WHILE => {
+                let mut cond: Vec<Option<Instruction>> = Vec::new();
+                let mut contents: Vec<Option<Instruction>> = Vec::new();
+
+                while let Some(i) = self.operations.next() {
+                    if let Some(j) = i {
+                        if j.OpCode != OpCodes::DO {
+                            cond.push(self.gen_instruction_from_op(j));
+                        } else if j.OpCode == OpCodes::DO {
+                            while let Some(x) = self.operations.next() {
+                                if let Some(y) = x {
+                                    if y.OpCode != OpCodes::END {
+                                        contents.push(self.gen_instruction_from_op(y));
+                                    } else {
+                                        return Some(Instruction::new(
+                                            Instructions::While(
+                                                While::new(
+                                                    cond,
+                                                    contents
+                                                )
+                                            ),
+                                            None
+                                        ))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                return Some(Instruction::new(
+                        Instructions::While(
+                            While::new(
+                                cond,
+                                contents
+                            )
+                        ), None
+                    )
+                )
+
+            },
             OpCodes::END => {
                 eprintln!("ERROR: 'end' statement found without matching block");
                 std::process::exit(1);
             },
             OpCodes::ELSE => {
                 eprintln!("ERROR: 'else' statement found without match 'if'");
+                std::process::exit(1);
+            },
+            OpCodes::DO => {
+                eprintln!("ERROR: 'do' statement found without matching block");
                 std::process::exit(1);
             }
         }
@@ -378,6 +443,25 @@ fn evaluate_instruction(instruction: &Instruction, stack: &mut Vec<i32>) {
                     }
                 },
                 _ => panic!("Binary boolean not found")
+            }
+        },
+        Instructions::While(nested_struct) => {
+            for instr in &nested_struct.Cond {
+                if let Some(i) = instr {
+                    evaluate_instruction(&i, stack)
+                }
+            }
+            while stack.pop().expect("No value found on stack") == 1 {
+                for instr in &nested_struct.Contents {
+                    if let Some(i) = instr {
+                        evaluate_instruction(&i, stack)
+                    }
+                }
+                for instr in &nested_struct.Cond {
+                    if let Some(i) = instr {
+                        evaluate_instruction(&i, stack)
+                    }
+                }
             }
         }
     }
