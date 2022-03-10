@@ -391,7 +391,7 @@ fn evaluate_instruction(instruction: &Instruction, stack: &mut Vec<i32>) {
         Instructions::SUB => {
             let first_val = stack.pop().expect("Insufficient data on the stack");
             let second_val = stack.pop().expect("Insufficient data on the stack");
-            stack.push(first_val - second_val);
+            stack.push(second_val - first_val);
         },
         Instructions::MULT => {
             let first_val = stack.pop().expect("Insufficient data on the stack");
@@ -401,7 +401,7 @@ fn evaluate_instruction(instruction: &Instruction, stack: &mut Vec<i32>) {
         Instructions::DIV => {
             let first_val = stack.pop().expect("Insufficient data on the stack");
             let second_val = stack.pop().expect("Insufficient data on the stack");
-            stack.push(first_val / second_val);
+            stack.push(second_val / first_val);
         },
         Instructions::EQ => {
             let first_val = stack.pop().expect("Insufficient data on the stack");
@@ -415,7 +415,7 @@ fn evaluate_instruction(instruction: &Instruction, stack: &mut Vec<i32>) {
         Instructions::LT => {
             let first_val = stack.pop().expect("Insufficient data on the stack");
             let second_val = stack.pop().expect("Insufficient data on the stack");
-            if first_val < second_val {
+            if second_val < first_val {
                 stack.push(1);
             } else {
                 stack.push(0);
@@ -424,7 +424,7 @@ fn evaluate_instruction(instruction: &Instruction, stack: &mut Vec<i32>) {
         Instructions::GT => {
             let first_val = stack.pop().expect("Insufficient data on the stack");
             let second_val = stack.pop().expect("Insufficient data on the stack");
-            if first_val > second_val {
+            if second_val > first_val {
                 stack.push(1);
             } else {
                 stack.push(0);

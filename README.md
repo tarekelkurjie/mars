@@ -47,8 +47,6 @@
 
 *(Prints '3' to the standard output)*
 
-*Note: for order-sensitive operations such as - or /, expressions are evaluated in the order they sit on the stack. In the case of the above example, if the operation were subtraction, the program would subtracrt '1' from '2'*
-
 *Note: operations as such pop the evaluated values from the stack*
 
 ### Conditionals
@@ -64,11 +62,9 @@
 
 **Check for less-than/greater-than by pusing two values to the stack, followed by a '<' or '>' sign respectively**
 ```
-6 5 < .
+6 5 > .
 ```
 *(Prints '1`, represeting 'true' to the standard output)*
-
-*Note: checks values in order that they sit on the stack, in this case checking if '5' is less than '6'*
 
 *Note: checking for lt/gt also pops the two values checked*
 
