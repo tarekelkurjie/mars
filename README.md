@@ -1,6 +1,8 @@
 # Marslang
 **Stack-based interpereted language implemented in rust**
 
+Syntax heavily inspired by [porth](https://gitlab.com/tsoding/porth)
+
 ## To-Do
 - [ ] Implement all basic programming uses (if/else, loops, variables, functions, etc)
 - [ ] Better error handling
