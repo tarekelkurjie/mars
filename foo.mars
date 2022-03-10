@@ -1,9 +1,4 @@
-2 2 = if
-    2 3 = if
-        6 .
-    else
-        8 .
-    end
-else
-    5 .
+10 while dup 0 > do
+    dup .
+    1 -
 end
