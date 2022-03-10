@@ -11,6 +11,7 @@ use std::{fs, io, env};
 enum OpCodes {
     PUSH,
     POP,
+    DUP,
     ADD,
     SUB,
     MULT,
@@ -29,6 +30,7 @@ enum OpCodes {
 enum Instructions {
     PUSH,
     POP,
+    DUP,
     ADD,
     SUB,
     MULT,
@@ -102,7 +104,8 @@ impl IfElse {
     }
 }
 
-const KEYWORDS: [&str; 13] = [
+const KEYWORDS: [&str; 14] = [
+    "dup",
     "if",
     "else",
     "while",
@@ -190,6 +193,7 @@ impl Iterator for Lexer {
             if !first_char.is_numeric() {
                 if let Some(token) = self.get_keyword(first_char) {
                     match token.as_str() {
+                        "dup" => return Some(Operation::new(OpCodes::DUP, None)),
                         "if" => return Some(Operation::new(OpCodes::IF, None)),
                         "else" => return Some(Operation::new(OpCodes::ELSE, None)),
                         "while" => return Some(Operation::new(OpCodes::WHILE, None)),
@@ -237,6 +241,7 @@ impl Parser {
         match op.OpCode { 
             OpCodes::PUSH => return Some(Instruction::new(Instructions::PUSH, Some(op.Contents.expect("this literally should not be possible")))),
             OpCodes::POP => return Some(Instruction::new(Instructions::POP, None)),
+            OpCodes::DUP => return Some(Instruction::new(Instructions::DUP, None)),
             OpCodes::ADD => return Some(Instruction::new(Instructions::ADD, None)),
             OpCodes::SUB => return Some(Instruction::new(Instructions::SUB, None)),
             OpCodes::EQ => return Some(Instruction::new(Instructions::EQ, None)),
@@ -373,6 +378,11 @@ fn evaluate_instruction(instruction: &Instruction, stack: &mut Vec<i32>) {
         Instructions::POP => {
             println!("{:?}", stack.pop().expect("Cannot pop value from empty stack"))
         },
+        Instructions::DUP => {
+            let val = stack.pop().expect("ERROR: No data on stack to duplicate");
+            stack.push(val);
+            stack.push(val);
+        }
         Instructions::ADD => {
             let first_val = stack.pop().expect("Insufficient data on the stack");
             let second_val = stack.pop().expect("Insufficient data on the stack");
