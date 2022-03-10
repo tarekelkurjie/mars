@@ -26,9 +26,16 @@
 ```
 1 2 3 . 4 5 .
 ```
-(Prints '3' and '5' to the standard output)
+*(Prints '3' and '5' to the standard output)*
 
 *Note: printing also pops the value off the stack*
+
+**Duplicate value on top of stack by writing "dup"**
+```
+5 dup . .
+```
+
+*(Prints '5' twice to the standard output)*
 
 ### Arithmetics
 
@@ -38,7 +45,7 @@
 1 2 + .
 ```
 
-(Prints '3' to the standard output)
+*(Prints '3' to the standard output)*
 
 *Note: for order-sensitive operations such as - or /, expressions are evaluated in the order they sit on the stack. In the case of the above example, if the operation were subtraction, the program would subtracrt '1' from '2'*
 
@@ -51,7 +58,7 @@
 5 5 = .
 ```
 
-(Prints '1`, represeting 'true' to the standard output)
+*(Prints '1`, represeting 'true' to the standard output)*
 
 *Note: checking for equality also pops the two values checked*
 
@@ -59,7 +66,7 @@
 ```
 6 5 < .
 ```
-(Prints '1`, represeting 'true' to the standard output)
+*(Prints '1`, represeting 'true' to the standard output)*
 
 *Note: checks values in order that they sit on the stack, in this case checking if '5' is less than '6'*
 
@@ -79,6 +86,18 @@ else
 end
 ```
 *Note: 'if' pops top of stack, regardless of whether or not it is a binary boolean*
+
+### Loops
+
+**Make a while loop by writing the 'while' keyword, followed by the wanted condition, followed by the 'do' keyword, followed by the code that you want to repeat**
+
+```
+while 1 1 = do
+    8 .
+end
+```
+
+*(prints 8 to the standard output repeatedly)*
 
 ### Variables NOT YET IMPLEMENTED
 
