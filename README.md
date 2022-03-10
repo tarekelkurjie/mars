@@ -1,5 +1,5 @@
 # Marslang
-**Stack-based interpereted language implemented in rust**
+**Stack-based interpreted language implemented in rust**
 
 Syntax heavily inspired by [porth](https://gitlab.com/tsoding/porth)
 
