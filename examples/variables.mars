@@ -1,0 +1,5 @@
+@counter 10 def
+while counter 0 > do
+    counter print
+    @counter counter 1 - def
+end
