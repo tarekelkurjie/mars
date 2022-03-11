@@ -25,7 +25,8 @@ enum OpCodes {
     END,
     DO,
     VARDECLARE(String),
-    VARDEFINE
+    VARDEFINE,
+    REFERENCE(String)
 }
 
 #[derive(Debug)]
@@ -41,6 +42,7 @@ enum Instructions {
     LT,
     GT,
     VARDECLARE(VariableDefine),
+    REFERENCE(String),
     If(IfElse),
     While(While)
 }
@@ -107,34 +109,10 @@ impl IfElse {
 }
 
 #[derive(Debug)]
-struct Variable<'a> {
-    name: &'a String,
-    value: Option<i32>
-}
-
-#[derive(Debug)]
 struct VariableDefine {
     name: String,
     instructions: Vec<Option<Instruction>>
 }
-
-const KEYWORDS: [&str; 15] = [
-    "dup",
-    "if",
-    "else",
-    "while",
-    "end",
-    "do",
-    "+",
-    "-",
-    ".",
-    "=",
-    "<",
-    ">",
-    "*",
-    "/",
-    "def",
-];
 
 #[derive(Debug)]
 struct Lexer {
@@ -165,17 +143,6 @@ impl Lexer {
             }  
         }
         return res
-    }
-
-    fn get_keyword(&mut self, current_char: char) -> Option<String> {
-        let mut token: String = current_char.to_string();
-        token = self.get_next_char_while(token, Self::is_alphanumeric);
-        
-        if KEYWORDS.contains(&token.as_str()) {
-            return Some(token);
-        } else {
-            return None;
-        }
     }
 
     fn is_alphanumeric(c: char) -> bool {
@@ -211,10 +178,10 @@ impl Iterator for Lexer {
                     let name = self.get_next_char_while(token, |c| Self::is_alphanumeric(c));
 
                     return Some(Operation::new(OpCodes::VARDECLARE(name.to_string()), None));
-                }
-
-                if let Some(token) = self.get_keyword(first_char) {
-                    match token.as_str() {
+                } else {
+                    let token: String = first_char.to_string();
+                    let identifier = self.get_next_char_while(token, |c| Self::is_alphanumeric(c));
+                    match identifier.as_str() {
                         "dup" => return Some(Operation::new(OpCodes::DUP, None)),
                         "if" => return Some(Operation::new(OpCodes::IF, None)),
                         "else" => return Some(Operation::new(OpCodes::ELSE, None)),
@@ -230,10 +197,7 @@ impl Iterator for Lexer {
                         "*" => return Some(Operation::new(OpCodes::MULT, None)),
                         "/" => return Some(Operation::new(OpCodes::DIV, None)),
                         "def" => return Some(Operation::new(OpCodes::VARDEFINE, None)),
-                        _ => {
-                            eprintln!("ERROR: Unknown token {}", token);
-                            std::process::exit(1);
-                        }
+                        _ => return Some(Operation::new(OpCodes::REFERENCE(identifier.to_string()), None))
                     }
                 }
             }
@@ -387,7 +351,8 @@ impl Parser {
             OpCodes::VARDEFINE => {
                 eprintln!("ERROR: 'def' statement found without matching variable declaration");
                 std::process::exit(1);
-            }
+            },
+            OpCodes::REFERENCE(name) => Some(Instruction::new(Instructions::REFERENCE(name), None))
         }
     }
 }
@@ -413,7 +378,7 @@ impl Iterator for Parser {
 
 
 
-fn evaluate_instruction<'a>(instruction: &'a Instruction, stack: &mut Vec<i32>, data_stack: &mut Vec<Variable<'a>>) {
+fn evaluate_instruction<'a>(instruction: &'a Instruction, stack: &mut Vec<i32>, data_stack: &mut HashMap<String, i32>) {
     match &instruction.Instruction {
         Instructions::PUSH => stack.push(instruction.Contents.expect("no data given to push to the stack")),
         Instructions::POP => {
@@ -519,18 +484,23 @@ fn evaluate_instruction<'a>(instruction: &'a Instruction, stack: &mut Vec<i32>, 
             for instr in &nested_struct.instructions {
                 evaluate_instruction(&instr.as_ref().unwrap(), stack, data_stack);
             }
-            data_stack.push(
-                Variable {
-                    name: &nested_struct.name,
-                    value: stack.pop()
-                }
+            data_stack.insert(
+                nested_struct.name.to_string(),
+                stack.pop().unwrap()
             );
-            println!("{:?}", data_stack);
         },
+        Instructions::REFERENCE(name) => {
+            if let Some(data) = data_stack.get(name) {
+                stack.push(*data);
+            } else {
+                eprintln!("Unexpected token {}", name);
+                std::process::exit(1);
+            }
+        }
     }
 }
 
-fn simulate<'a>(stack: &'a mut Vec<i32>, data_stack: &'a mut Vec<Variable<'a>>, instructions: &'a Vec<Option<Instruction>>) {
+fn simulate<'a>(stack: &'a mut Vec<i32>, data_stack: &'a mut HashMap<String, i32>, instructions: &'a Vec<Option<Instruction>>) {
     for instruction in instructions {
         match &instruction {
             Some(i) => {
@@ -551,7 +521,7 @@ fn main() {
 
     let mut operations: Vec<Option<Operation>> = Vec::new();
     let mut stack: Vec<i32> = Vec::new();
-    let mut data_stack: HashMap<Variable> = Vec::new();
+    let mut data_stack: HashMap<String, i32> = HashMap::new();
 
     let lex = Lexer::from_file(&args[1]).unwrap();
 
