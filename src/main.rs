@@ -13,6 +13,7 @@ enum OpCodes {
     POP,
     PRINT,
     DUP,
+    SWAP,
     ADD,
     SUB,
     MULT,
@@ -36,6 +37,7 @@ enum Instructions {
     POP,
     PRINT,
     DUP,
+    SWAP,
     ADD,
     SUB,
     MULT,
@@ -185,6 +187,7 @@ impl Iterator for Lexer {
                     let identifier = self.get_next_char_while(token, |c| Self::is_alphanumeric(c));
                     match identifier.as_str() {
                         "dup" => return Some(Operation::new(OpCodes::DUP, None)),
+                        "swap" => return Some(Operation::new(OpCodes::SWAP, None)),
                         "pop" => return Some(Operation::new(OpCodes::POP, None)),
                         "if" => return Some(Operation::new(OpCodes::IF, None)),
                         "else" => return Some(Operation::new(OpCodes::ELSE, None)),
@@ -233,6 +236,7 @@ impl Parser {
             OpCodes::PRINT => return Some(Instruction::new(Instructions::PRINT, None)),
             OpCodes::POP => return Some(Instruction::new(Instructions::POP, None)),
             OpCodes::DUP => return Some(Instruction::new(Instructions::DUP, None)),
+            OpCodes::SWAP => return Some(Instruction::new(Instructions::SWAP, None)),
             OpCodes::ADD => return Some(Instruction::new(Instructions::ADD, None)),
             OpCodes::SUB => return Some(Instruction::new(Instructions::SUB, None)),
             OpCodes::EQ => return Some(Instruction::new(Instructions::EQ, None)),
@@ -390,12 +394,18 @@ fn evaluate_instruction<'a>(instruction: &'a Instruction, stack: &mut Vec<i32>, 
         },
         Instructions::POP => {
             stack.pop();
-        }
+        },
         Instructions::DUP => {
             let val = stack.pop().expect("ERROR: No data on stack to duplicate");
             stack.push(val);
             stack.push(val);
-        }
+        },
+        Instructions::SWAP => {
+            let first_val = stack.pop().expect("Insufficient data on the stack");
+            let second_val = stack.pop().expect("Insufficient data on the stack");
+            stack.push(first_val);
+            stack.push(second_val);
+        },
         Instructions::ADD => {
             let first_val = stack.pop().expect("Insufficient data on the stack");
             let second_val = stack.pop().expect("Insufficient data on the stack");
