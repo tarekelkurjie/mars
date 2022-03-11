@@ -2,10 +2,10 @@
 
 use std::iter::Peekable;
 use std::vec::IntoIter;
+use std::collections::HashMap;
 
 use std::{fs, io, env};
 
-#[derive(Copy, Clone)]
 #[derive(PartialEq)]
 #[derive(Debug)]
 enum OpCodes {
@@ -23,7 +23,9 @@ enum OpCodes {
     ELSE,
     WHILE,
     END,
-    DO
+    DO,
+    VARDECLARE(String),
+    VARDEFINE
 }
 
 #[derive(Debug)]
@@ -38,11 +40,11 @@ enum Instructions {
     EQ,
     LT,
     GT,
+    VARDECLARE(VariableDefine),
     If(IfElse),
     While(While)
 }
 
-#[derive(Copy, Clone)]
 #[derive(PartialEq)]
 #[derive(Debug)]
 struct Operation {
@@ -104,7 +106,19 @@ impl IfElse {
     }
 }
 
-const KEYWORDS: [&str; 14] = [
+#[derive(Debug)]
+struct Variable<'a> {
+    name: &'a String,
+    value: Option<i32>
+}
+
+#[derive(Debug)]
+struct VariableDefine {
+    name: String,
+    instructions: Vec<Option<Instruction>>
+}
+
+const KEYWORDS: [&str; 15] = [
     "dup",
     "if",
     "else",
@@ -118,7 +132,8 @@ const KEYWORDS: [&str; 14] = [
     "<",
     ">",
     "*",
-    "/"
+    "/",
+    "def",
 ];
 
 #[derive(Debug)]
@@ -164,7 +179,7 @@ impl Lexer {
     }
 
     fn is_alphanumeric(c: char) -> bool {
-        return c.is_alphanumeric();
+        return c.is_alphanumeric() || c == '_';
     }
 
     fn get_numeric(&mut self, c: char) -> String {
@@ -191,6 +206,13 @@ impl Iterator for Lexer {
             }
 
             if !first_char.is_numeric() {
+                if first_char == '@' {
+                    let token: String = self.raw_data.next().expect("ERROR: No character found").to_string();
+                    let name = self.get_next_char_while(token, |c| Self::is_alphanumeric(c));
+
+                    return Some(Operation::new(OpCodes::VARDECLARE(name.to_string()), None));
+                }
+
                 if let Some(token) = self.get_keyword(first_char) {
                     match token.as_str() {
                         "dup" => return Some(Operation::new(OpCodes::DUP, None)),
@@ -207,6 +229,7 @@ impl Iterator for Lexer {
                         ">" => return Some(Operation::new(OpCodes::GT, None)),
                         "*" => return Some(Operation::new(OpCodes::MULT, None)),
                         "/" => return Some(Operation::new(OpCodes::DIV, None)),
+                        "def" => return Some(Operation::new(OpCodes::VARDEFINE, None)),
                         _ => {
                             eprintln!("ERROR: Unknown token {}", token);
                             std::process::exit(1);
@@ -346,6 +369,24 @@ impl Parser {
             OpCodes::DO => {
                 eprintln!("ERROR: 'do' statement found without matching block");
                 std::process::exit(1);
+            },
+            OpCodes::VARDECLARE(name) => {
+                let mut instr: Vec<Option<Instruction>> = Vec::new();
+
+                while let Some(i) = self.operations.next() {
+                    if let Some(j) = i {
+                        if j.OpCode != OpCodes::VARDEFINE {
+                            instr.push(self.gen_instruction_from_op(j));
+                        } else {
+                            return Some(Instruction::new(Instructions::VARDECLARE(VariableDefine {name: name.to_string(), instructions: instr}), None));
+                        }
+                    }
+                }
+                return Some(Instruction::new(Instructions::VARDECLARE(VariableDefine {name: name.to_string(), instructions: instr}), None));
+            },
+            OpCodes::VARDEFINE => {
+                eprintln!("ERROR: 'def' statement found without matching variable declaration");
+                std::process::exit(1);
             }
         }
     }
@@ -372,7 +413,7 @@ impl Iterator for Parser {
 
 
 
-fn evaluate_instruction(instruction: &Instruction, stack: &mut Vec<i32>) {
+fn evaluate_instruction<'a>(instruction: &'a Instruction, stack: &mut Vec<i32>, data_stack: &mut Vec<Variable<'a>>) {
     match &instruction.Instruction {
         Instructions::PUSH => stack.push(instruction.Contents.expect("no data given to push to the stack")),
         Instructions::POP => {
@@ -435,7 +476,7 @@ fn evaluate_instruction(instruction: &Instruction, stack: &mut Vec<i32>) {
                 1 => {
                     for i in nested_struct.If.as_ref().unwrap() {
                         if let Some(j) = i {
-                            evaluate_instruction(&j, stack)
+                            evaluate_instruction(&j, stack, data_stack)
                         }
                     }
                 },
@@ -444,7 +485,7 @@ fn evaluate_instruction(instruction: &Instruction, stack: &mut Vec<i32>) {
                         if instr.len() > 0 {
                             for i in instr {
                                 if let Some(j) = i {
-                                    evaluate_instruction(&j, stack)
+                                    evaluate_instruction(&j, stack, data_stack)
                                 }
                             }
                         }
@@ -458,30 +499,42 @@ fn evaluate_instruction(instruction: &Instruction, stack: &mut Vec<i32>) {
         Instructions::While(nested_struct) => {
             for instr in &nested_struct.Cond {
                 if let Some(i) = instr {
-                    evaluate_instruction(&i, stack)
+                    evaluate_instruction(&i, stack, data_stack)
                 }
             }
             while stack.pop().expect("No value found on stack") == 1 {
                 for instr in &nested_struct.Contents {
                     if let Some(i) = instr {
-                        evaluate_instruction(&i, stack)
+                        evaluate_instruction(&i, stack, data_stack)
                     }
                 }
                 for instr in &nested_struct.Cond {
                     if let Some(i) = instr {
-                        evaluate_instruction(&i, stack)
+                        evaluate_instruction(&i, stack, data_stack)
                     }
                 }
             }
-        }
+        },
+        Instructions::VARDECLARE(nested_struct) => {
+            for instr in &nested_struct.instructions {
+                evaluate_instruction(&instr.as_ref().unwrap(), stack, data_stack);
+            }
+            data_stack.push(
+                Variable {
+                    name: &nested_struct.name,
+                    value: stack.pop()
+                }
+            );
+            println!("{:?}", data_stack);
+        },
     }
 }
 
-fn simulate(stack: &mut Vec<i32>, instructions: Vec<Option<Instruction>>) {
+fn simulate<'a>(stack: &'a mut Vec<i32>, data_stack: &'a mut Vec<Variable<'a>>, instructions: &'a Vec<Option<Instruction>>) {
     for instruction in instructions {
-        match instruction {
+        match &instruction {
             Some(i) => {
-                evaluate_instruction(&i, stack);
+                evaluate_instruction(&i, stack, data_stack);
             },
             None => continue
         }
@@ -498,6 +551,7 @@ fn main() {
 
     let mut operations: Vec<Option<Operation>> = Vec::new();
     let mut stack: Vec<i32> = Vec::new();
+    let mut data_stack: HashMap<Variable> = Vec::new();
 
     let lex = Lexer::from_file(&args[1]).unwrap();
 
@@ -515,6 +569,6 @@ fn main() {
         instructions.push(Some(instr));
     }
 
-    simulate(&mut stack, instructions)
+    simulate(&mut stack, &mut data_stack, &instructions);
     // println!("{:?}", instructions);
 }

@@ -1,4 +1,1 @@
-10 while dup 0 > do
-    dup .
-    1 -
-end
+@my_var 10 def
