@@ -11,6 +11,7 @@ use std::{fs, io, env};
 enum OpCodes {
     PUSH,
     POP,
+    PRINT,
     DUP,
     ADD,
     SUB,
@@ -33,6 +34,7 @@ enum OpCodes {
 enum Instructions {
     PUSH,
     POP,
+    PRINT,
     DUP,
     ADD,
     SUB,
@@ -183,6 +185,7 @@ impl Iterator for Lexer {
                     let identifier = self.get_next_char_while(token, |c| Self::is_alphanumeric(c));
                     match identifier.as_str() {
                         "dup" => return Some(Operation::new(OpCodes::DUP, None)),
+                        "pop" => return Some(Operation::new(OpCodes::POP, None)),
                         "if" => return Some(Operation::new(OpCodes::IF, None)),
                         "else" => return Some(Operation::new(OpCodes::ELSE, None)),
                         "while" => return Some(Operation::new(OpCodes::WHILE, None)),
@@ -190,7 +193,7 @@ impl Iterator for Lexer {
                         "do" => return Some(Operation::new(OpCodes::DO, None)),
                         "+" => return Some(Operation::new(OpCodes::ADD, None)),
                         "-" => return Some(Operation::new(OpCodes::SUB, None)),
-                        "." => return Some(Operation::new(OpCodes::POP, None)),
+                        "print" => return Some(Operation::new(OpCodes::PRINT, None)),
                         "=" => return Some(Operation::new(OpCodes::EQ, None)),
                         "<" => return Some(Operation::new(OpCodes::LT, None)),
                         ">" => return Some(Operation::new(OpCodes::GT, None)),
@@ -227,6 +230,7 @@ impl Parser {
     fn gen_instruction_from_op(&mut self, op: Operation) -> Option<Instruction> {
         match op.OpCode { 
             OpCodes::PUSH => return Some(Instruction::new(Instructions::PUSH, Some(op.Contents.expect("this literally should not be possible")))),
+            OpCodes::PRINT => return Some(Instruction::new(Instructions::PRINT, None)),
             OpCodes::POP => return Some(Instruction::new(Instructions::POP, None)),
             OpCodes::DUP => return Some(Instruction::new(Instructions::DUP, None)),
             OpCodes::ADD => return Some(Instruction::new(Instructions::ADD, None)),
@@ -381,9 +385,12 @@ impl Iterator for Parser {
 fn evaluate_instruction<'a>(instruction: &'a Instruction, stack: &mut Vec<i32>, data_stack: &mut HashMap<String, i32>) {
     match &instruction.Instruction {
         Instructions::PUSH => stack.push(instruction.Contents.expect("no data given to push to the stack")),
-        Instructions::POP => {
+        Instructions::PRINT => {
             println!("{:?}", stack.pop().expect("Cannot pop value from empty stack"))
         },
+        Instructions::POP => {
+            stack.pop();
+        }
         Instructions::DUP => {
             let val = stack.pop().expect("ERROR: No data on stack to duplicate");
             stack.push(val);
