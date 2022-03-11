@@ -1,4 +1,5 @@
-10 while dup 0 > do
-    dup .
-    1 -
+@my_var 10 def
+while my_var 0 > do
+    my_var .
+    @my_var my_var 1 - def
 end
