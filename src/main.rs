@@ -27,8 +27,10 @@ enum OpCodes {
     END,
     DO,
     VARDECLARE(String),
-    VARDEFINE,
-    REFERENCE(String)
+    DEFINE,
+    IDENTIFIER(String),
+    SPAWN(String),
+    SWITCH(String)
 }
 
 #[derive(Debug)]
@@ -46,9 +48,11 @@ enum Instructions {
     LT,
     GT,
     VARDECLARE(VariableDefine),
-    REFERENCE(String),
+    IDENTIFIER(String),
     If(IfElse),
-    While(While)
+    While(While),
+    SPAWN(String),
+    SWITCH(String)
 }
 
 #[derive(PartialEq)]
@@ -144,7 +148,7 @@ impl Lexer {
                     self.raw_data.next();
                 }
                 _ => break,
-            }  
+            }
         }
         return res
     }
@@ -202,8 +206,20 @@ impl Iterator for Lexer {
                         ">" => return Some(Operation::new(OpCodes::GT, None)),
                         "*" => return Some(Operation::new(OpCodes::MULT, None)),
                         "/" => return Some(Operation::new(OpCodes::DIV, None)),
-                        "def" => return Some(Operation::new(OpCodes::VARDEFINE, None)),
-                        _ => return Some(Operation::new(OpCodes::REFERENCE(identifier.to_string()), None))
+                        "def" => return Some(Operation::new(OpCodes::DEFINE, None)),
+                        "spawn" => {
+                            let token: String = self.raw_data.next().expect("ERROR: No character found").to_string();
+                            let name = self.get_next_char_while(token, |c| Self::is_alphanumeric(c));
+
+                            return Some(Operation::new(OpCodes::SPAWN(name.to_string()), None));
+                        },
+                        "switch" => {
+                            let token: String = self.raw_data.next().expect("ERROR: No character found").to_string();
+                            let name = self.get_next_char_while(token, |c| Self::is_alphanumeric(c));
+
+                            return Some(Operation::new(OpCodes::SWITCH(name.to_string()), None));
+                        },
+                        _ => return Some(Operation::new(OpCodes::IDENTIFIER(identifier.trim().to_string()), None))
                     }
                 }
             }
@@ -231,7 +247,7 @@ impl Parser {
     }
 
     fn gen_instruction_from_op(&mut self, op: Operation) -> Option<Instruction> {
-        match op.OpCode { 
+        match op.OpCode {
             OpCodes::PUSH => return Some(Instruction::new(Instructions::PUSH, Some(op.Contents.expect("this literally should not be possible")))),
             OpCodes::PRINT => return Some(Instruction::new(Instructions::PRINT, None)),
             OpCodes::POP => return Some(Instruction::new(Instructions::POP, None)),
@@ -282,7 +298,7 @@ impl Parser {
                         },
                         _ => continue
                     }
-                } 
+                }
                 return Some(Instruction::new(
                     Instructions::If(
                         IfElse::new(
@@ -347,7 +363,7 @@ impl Parser {
 
                 while let Some(i) = self.operations.next() {
                     if let Some(j) = i {
-                        if j.OpCode != OpCodes::VARDEFINE {
+                        if j.OpCode != OpCodes::DEFINE {
                             instr.push(self.gen_instruction_from_op(j));
                         } else {
                             return Some(Instruction::new(Instructions::VARDECLARE(VariableDefine {name: name.to_string(), instructions: instr}), None));
@@ -356,11 +372,13 @@ impl Parser {
                 }
                 return Some(Instruction::new(Instructions::VARDECLARE(VariableDefine {name: name.to_string(), instructions: instr}), None));
             },
-            OpCodes::VARDEFINE => {
+            OpCodes::DEFINE => {
                 eprintln!("ERROR: 'def' statement found without matching variable declaration");
                 std::process::exit(1);
             },
-            OpCodes::REFERENCE(name) => Some(Instruction::new(Instructions::REFERENCE(name), None))
+            OpCodes::IDENTIFIER(name) => Some(Instruction::new(Instructions::IDENTIFIER(name), None)),
+            OpCodes::SPAWN(name) => Some(Instruction::new(Instructions::SPAWN(name), None)),
+            OpCodes::SWITCH(name) => Some(Instruction::new(Instructions::SWITCH(name), None))
         }
     }
 }
@@ -375,18 +393,16 @@ impl Iterator for Parser {
                     if let Some(j) = i {
                         return self.gen_instruction_from_op(j);
                     }
-                    
+
                 },
-                None => return None 
-                
+                None => return None
+
             }
         }
     }
 }
 
-
-
-fn evaluate_instruction<'a>(instruction: &'a Instruction, stack: &mut Vec<i32>, data_stack: &mut HashMap<String, i32>) {
+fn evaluate_instruction(instruction: &Instruction, mut stack: &mut Vec<i32>, data_stack: &mut HashMap<String, i32>, stack_stack: &mut HashMap<String, Vec<i32>>) {
     match &instruction.Instruction {
         Instructions::PUSH => stack.push(instruction.Contents.expect("no data given to push to the stack")),
         Instructions::PRINT => {
@@ -458,7 +474,7 @@ fn evaluate_instruction<'a>(instruction: &'a Instruction, stack: &mut Vec<i32>, 
                 1 => {
                     for i in nested_struct.If.as_ref().unwrap() {
                         if let Some(j) = i {
-                            evaluate_instruction(&j, stack, data_stack)
+                            evaluate_instruction(&j, stack, data_stack, stack_stack)
                         }
                     }
                 },
@@ -467,7 +483,7 @@ fn evaluate_instruction<'a>(instruction: &'a Instruction, stack: &mut Vec<i32>, 
                         if instr.len() > 0 {
                             for i in instr {
                                 if let Some(j) = i {
-                                    evaluate_instruction(&j, stack, data_stack)
+                                    evaluate_instruction(&j, stack, data_stack, stack_stack)
                                 }
                             }
                         }
@@ -481,47 +497,69 @@ fn evaluate_instruction<'a>(instruction: &'a Instruction, stack: &mut Vec<i32>, 
         Instructions::While(nested_struct) => {
             for instr in &nested_struct.Cond {
                 if let Some(i) = instr {
-                    evaluate_instruction(&i, stack, data_stack)
+                    evaluate_instruction(&i, stack, data_stack, stack_stack)
                 }
             }
             while stack.pop().expect("No value found on stack") == 1 {
                 for instr in &nested_struct.Contents {
                     if let Some(i) = instr {
-                        evaluate_instruction(&i, stack, data_stack)
+                        evaluate_instruction(&i, stack, data_stack, stack_stack)
                     }
                 }
                 for instr in &nested_struct.Cond {
                     if let Some(i) = instr {
-                        evaluate_instruction(&i, stack, data_stack)
+                        evaluate_instruction(&i, stack, data_stack, stack_stack)
                     }
                 }
             }
         },
         Instructions::VARDECLARE(nested_struct) => {
             for instr in &nested_struct.instructions {
-                evaluate_instruction(&instr.as_ref().unwrap(), stack, data_stack);
+                evaluate_instruction(&instr.as_ref().unwrap(), stack, data_stack, stack_stack);
             }
             data_stack.insert(
                 nested_struct.name.to_string(),
                 stack.pop().unwrap()
             );
         },
-        Instructions::REFERENCE(name) => {
+        Instructions::IDENTIFIER(name) => {
             if let Some(data) = data_stack.get(name) {
                 stack.push(*data);
             } else {
+                println!("{:?}", data_stack);
                 eprintln!("Unexpected token {}", name);
                 std::process::exit(1);
+            }
+        },
+        Instructions::SPAWN(name) => {
+            let mut new_stack: Vec<i32> = Vec::new();
+            stack_stack.insert(
+                name.to_string(),
+                new_stack
+            );
+        },
+        Instructions::SWITCH(name) => {
+            if let Some(new_stack) = stack_stack.get(name) {
+                stack = &mut new_stack.to_vec();
             }
         }
     }
 }
 
-fn simulate<'a>(stack: &'a mut Vec<i32>, data_stack: &'a mut HashMap<String, i32>, instructions: &'a Vec<Option<Instruction>>) {
+fn simulate(instructions: &Vec<Option<Instruction>>) {
+    let mut stack: Vec<i32> = Vec::new();
+    let mut data_stack: HashMap<String, i32> = HashMap::new();
+    let mut stack_stack: HashMap<String, Vec<i32>> = HashMap::new();
+
+    stack_stack.insert(
+        "main".to_string(),
+        stack
+    );
+
     for instruction in instructions {
         match &instruction {
             Some(i) => {
-                evaluate_instruction(&i, stack, data_stack);
+                evaluate_instruction(&i, &mut stack, &mut data_stack, &mut stack_stack);
             },
             None => continue
         }
@@ -537,8 +575,6 @@ fn main() {
     }
 
     let mut operations: Vec<Option<Operation>> = Vec::new();
-    let mut stack: Vec<i32> = Vec::new();
-    let mut data_stack: HashMap<String, i32> = HashMap::new();
 
     let lex = Lexer::from_file(&args[1]).unwrap();
 
@@ -556,6 +592,6 @@ fn main() {
         instructions.push(Some(instr));
     }
 
-    simulate(&mut stack, &mut data_stack, &instructions);
+    simulate(&instructions);
     // println!("{:?}", instructions);
 }
