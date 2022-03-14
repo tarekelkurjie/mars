@@ -5,6 +5,7 @@ use std::vec::IntoIter;
 use std::collections::HashMap;
 
 use std::{fs, io, env};
+use std::thread::current;
 
 #[derive(PartialEq)]
 #[derive(Debug)]
@@ -402,7 +403,7 @@ impl Iterator for Parser {
     }
 }
 
-fn evaluate_instruction(instruction: &Instruction, mut stack: &mut Vec<i32>, data_stack: &mut HashMap<String, i32>, stack_stack: &mut HashMap<String, Vec<i32>>) {
+fn evaluate_instruction<'a>(instruction: &Instruction, mut stack: &'a mut Vec<i32>, data_stack: &mut HashMap<String, i32>, stack_stack: &'a mut HashMap<String, Vec<i32>>) {
     match &instruction.Instruction {
         Instructions::PUSH => stack.push(instruction.Contents.expect("no data given to push to the stack")),
         Instructions::PRINT => {
@@ -539,9 +540,17 @@ fn evaluate_instruction(instruction: &Instruction, mut stack: &mut Vec<i32>, dat
             );
         },
         Instructions::SWITCH(name) => {
-            if let Some(new_stack) = stack_stack.get(name) {
-                stack = &mut new_stack.to_vec();
-            }
+            let mut tmp_stack:&'a mut Vec <i32>;
+            stack = match stack_stack.get(name) {
+                Some(vec) => {
+                    tmp_stack = &mut vec.to_vec();
+                    &mut tmp_stack
+                },
+                None => {
+                    eprintln!("ERROR: Stack with name {} not found", name);
+                    std::process::exit(1);
+                }
+            };
         }
     }
 }
