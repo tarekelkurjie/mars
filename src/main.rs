@@ -205,7 +205,6 @@ impl Iterator for Lexer {
                     let mut words = res.split_whitespace();
                     for _i in 0..3 {
                         if let Some(word) = words.next() {
-                            word.is_ascii()
                             name.push_str(word);
                             name.push('_');
                         }
