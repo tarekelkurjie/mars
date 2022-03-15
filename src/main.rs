@@ -9,16 +9,16 @@ use std::{fs, io, env};
 #[derive(PartialEq)]
 #[derive(Debug)]
 enum OpCodes {
-    PUSH,
+    PUSH, // Begin stack manipulation
     POP,
     PRINT,
     DUP,
     SWAP,
-    ADD,
+    ADD, // Begin arithmetic
     SUB,
     MULT,
     DIV,
-    EQ,
+    EQ, // Begin control flow
     LT,
     GT,
     IF,
@@ -26,12 +26,13 @@ enum OpCodes {
     WHILE,
     END,
     DO,
-    VARDECLARE(String),
+    VARDECLARE(String), // Begin variable declaration
     DEFINE,
-    IDENTIFIER(String),
-    SPAWN(String),
+    IDENTIFIER(String), // Identifier
+    SPAWN(String), // Begin spawnable stacks
     SWITCH(String),
-    CLOSE(String)
+    CLOSE(String),
+    STACKS
 }
 
 #[derive(Debug)]
@@ -54,7 +55,8 @@ enum Instructions {
     While(While),
     SPAWN(String),
     SWITCH(String),
-    CLOSE(String)
+    CLOSE(String),
+    STACKS
 }
 
 #[derive(PartialEq)]
@@ -229,7 +231,8 @@ impl Iterator for Lexer {
                             let name = self.get_next_char_while(token, |c| Self::is_alphanumeric(c));
 
                             return Some(Operation::new(OpCodes::CLOSE(name.to_string()), None));
-                        }
+                        },
+                        "stacks" => return Some(Operation::new(OpCodes::STACKS, None)),
                         _ => return Some(Operation::new(OpCodes::IDENTIFIER(identifier.trim().to_string()), None))
                     }
                 }
@@ -391,6 +394,7 @@ impl Parser {
             OpCodes::SPAWN(name) => Some(Instruction::new(Instructions::SPAWN(name), None)),
             OpCodes::SWITCH(name) => Some(Instruction::new(Instructions::SWITCH(name), None)),
             OpCodes::CLOSE(name) => Some(Instruction::new(Instructions::CLOSE(name), None)),
+            OpCodes::STACKS => Some(Instruction::new(Instructions::STACKS, None))
         }
     }
 }
@@ -589,6 +593,10 @@ impl<'a> Program<'a> {
                     std::process::exit(1);
                 }
                 self.stack_stack.remove(name);
+            },
+            Instructions::STACKS => {
+                println!("Stacks: ");
+                for k in self.stack_stack.keys() {println!("  {}", k)};
             }
         }
     }
