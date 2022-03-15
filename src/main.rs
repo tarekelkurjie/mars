@@ -9,16 +9,16 @@ use std::{fs, io, env};
 #[derive(PartialEq)]
 #[derive(Debug)]
 enum OpCodes {
-    PUSH,
+    PUSH, // Begin stack manipulation
     POP,
     PRINT,
     DUP,
     SWAP,
-    ADD,
+    ADD, // Begin arithmetic
     SUB,
     MULT,
     DIV,
-    EQ,
+    EQ, // Begin control flow
     LT,
     GT,
     IF,
@@ -26,9 +26,13 @@ enum OpCodes {
     WHILE,
     END,
     DO,
-    VARDECLARE(String),
-    VARDEFINE,
-    REFERENCE(String)
+    VARDECLARE(String), // Begin variable declaration
+    DEFINE,
+    IDENTIFIER(String), // Identifier
+    SPAWN(String), // Begin spawnable stacks
+    SWITCH(String),
+    CLOSE(String),
+    STACKS
 }
 
 #[derive(Debug)]
@@ -46,9 +50,13 @@ enum Instructions {
     LT,
     GT,
     VARDECLARE(VariableDefine),
-    REFERENCE(String),
+    IDENTIFIER(String),
     If(IfElse),
-    While(While)
+    While(While),
+    SPAWN(String),
+    SWITCH(String),
+    CLOSE(String),
+    STACKS
 }
 
 #[derive(PartialEq)]
@@ -144,7 +152,7 @@ impl Lexer {
                     self.raw_data.next();
                 }
                 _ => break,
-            }  
+            }
         }
         return res
     }
@@ -202,8 +210,30 @@ impl Iterator for Lexer {
                         ">" => return Some(Operation::new(OpCodes::GT, None)),
                         "*" => return Some(Operation::new(OpCodes::MULT, None)),
                         "/" => return Some(Operation::new(OpCodes::DIV, None)),
-                        "def" => return Some(Operation::new(OpCodes::VARDEFINE, None)),
-                        _ => return Some(Operation::new(OpCodes::REFERENCE(identifier.to_string()), None))
+                        "def" => return Some(Operation::new(OpCodes::DEFINE, None)),
+                        "spawn" => {
+                            self.raw_data.next();
+                            let token: String = self.raw_data.next().expect("ERROR: No character found").to_string();
+                            let name = self.get_next_char_while(token, |c| Self::is_alphanumeric(c));
+
+                            return Some(Operation::new(OpCodes::SPAWN(name.to_string()), None));
+                        },
+                        "switch" => {
+                            self.raw_data.next();
+                            let token: String = self.raw_data.next().expect("ERROR: No character found").to_string();
+                            let name = self.get_next_char_while(token, |c| Self::is_alphanumeric(c));
+
+                            return Some(Operation::new(OpCodes::SWITCH(name.to_string()), None));
+                        },
+                        "close" => {
+                            self.raw_data.next();
+                            let token: String = self.raw_data.next().expect("ERROR: No character found").to_string();
+                            let name = self.get_next_char_while(token, |c| Self::is_alphanumeric(c));
+
+                            return Some(Operation::new(OpCodes::CLOSE(name.to_string()), None));
+                        },
+                        "stacks" => return Some(Operation::new(OpCodes::STACKS, None)),
+                        _ => return Some(Operation::new(OpCodes::IDENTIFIER(identifier.trim().to_string()), None))
                     }
                 }
             }
@@ -231,7 +261,7 @@ impl Parser {
     }
 
     fn gen_instruction_from_op(&mut self, op: Operation) -> Option<Instruction> {
-        match op.OpCode { 
+        match op.OpCode {
             OpCodes::PUSH => return Some(Instruction::new(Instructions::PUSH, Some(op.Contents.expect("this literally should not be possible")))),
             OpCodes::PRINT => return Some(Instruction::new(Instructions::PRINT, None)),
             OpCodes::POP => return Some(Instruction::new(Instructions::POP, None)),
@@ -282,7 +312,7 @@ impl Parser {
                         },
                         _ => continue
                     }
-                } 
+                }
                 return Some(Instruction::new(
                     Instructions::If(
                         IfElse::new(
@@ -347,7 +377,7 @@ impl Parser {
 
                 while let Some(i) = self.operations.next() {
                     if let Some(j) = i {
-                        if j.OpCode != OpCodes::VARDEFINE {
+                        if j.OpCode != OpCodes::DEFINE {
                             instr.push(self.gen_instruction_from_op(j));
                         } else {
                             return Some(Instruction::new(Instructions::VARDECLARE(VariableDefine {name: name.to_string(), instructions: instr}), None));
@@ -356,11 +386,15 @@ impl Parser {
                 }
                 return Some(Instruction::new(Instructions::VARDECLARE(VariableDefine {name: name.to_string(), instructions: instr}), None));
             },
-            OpCodes::VARDEFINE => {
+            OpCodes::DEFINE => {
                 eprintln!("ERROR: 'def' statement found without matching variable declaration");
                 std::process::exit(1);
             },
-            OpCodes::REFERENCE(name) => Some(Instruction::new(Instructions::REFERENCE(name), None))
+            OpCodes::IDENTIFIER(name) => Some(Instruction::new(Instructions::IDENTIFIER(name), None)),
+            OpCodes::SPAWN(name) => Some(Instruction::new(Instructions::SPAWN(name), None)),
+            OpCodes::SWITCH(name) => Some(Instruction::new(Instructions::SWITCH(name), None)),
+            OpCodes::CLOSE(name) => Some(Instruction::new(Instructions::CLOSE(name), None)),
+            OpCodes::STACKS => Some(Instruction::new(Instructions::STACKS, None))
         }
     }
 }
@@ -375,155 +409,211 @@ impl Iterator for Parser {
                     if let Some(j) = i {
                         return self.gen_instruction_from_op(j);
                     }
-                    
+
                 },
-                None => return None 
-                
+                None => return None
+
             }
         }
     }
 }
 
+struct Program<'a> {
+    instructions: &'a Vec<Option<Instruction>>,
+    stack: Vec<i32>,
+    current_stack: String,
+    data_stack: &'a mut HashMap<String, i32>,
+    stack_stack: &'a mut HashMap<String, Vec<i32>>,
+}
 
-
-fn evaluate_instruction<'a>(instruction: &'a Instruction, stack: &mut Vec<i32>, data_stack: &mut HashMap<String, i32>) {
-    match &instruction.Instruction {
-        Instructions::PUSH => stack.push(instruction.Contents.expect("no data given to push to the stack")),
-        Instructions::PRINT => {
-            println!("{:?}", stack.pop().expect("Cannot pop value from empty stack"))
-        },
-        Instructions::POP => {
-            stack.pop();
-        },
-        Instructions::DUP => {
-            let val = stack.pop().expect("ERROR: No data on stack to duplicate");
-            stack.push(val);
-            stack.push(val);
-        },
-        Instructions::SWAP => {
-            let first_val = stack.pop().expect("Insufficient data on the stack");
-            let second_val = stack.pop().expect("Insufficient data on the stack");
-            stack.push(first_val);
-            stack.push(second_val);
-        },
-        Instructions::ADD => {
-            let first_val = stack.pop().expect("Insufficient data on the stack");
-            let second_val = stack.pop().expect("Insufficient data on the stack");
-            stack.push(first_val + second_val);
-        },
-        Instructions::SUB => {
-            let first_val = stack.pop().expect("Insufficient data on the stack");
-            let second_val = stack.pop().expect("Insufficient data on the stack");
-            stack.push(second_val - first_val);
-        },
-        Instructions::MULT => {
-            let first_val = stack.pop().expect("Insufficient data on the stack");
-            let second_val = stack.pop().expect("Insufficient data on the stack");
-            stack.push(first_val * second_val);
-        },
-        Instructions::DIV => {
-            let first_val = stack.pop().expect("Insufficient data on the stack");
-            let second_val = stack.pop().expect("Insufficient data on the stack");
-            stack.push(second_val / first_val);
-        },
-        Instructions::EQ => {
-            let first_val = stack.pop().expect("Insufficient data on the stack");
-            let second_val = stack.pop().expect("Insufficient data on the stack");
-            if first_val == second_val {
-                stack.push(1);
-            } else {
-                stack.push(0);
+impl<'a> Program<'a> {
+    fn evaluate_instruction(&mut self, instruction: &Instruction) {
+        match &instruction.Instruction {
+            Instructions::PUSH => {
+                self.stack.push(instruction.Contents.expect("ERROR: No data found to push to stack"));
+            },
+            Instructions::PRINT => {
+                println!("{:?}", self.stack.pop().expect("Cannot pop value from empty stack"))
+            },
+            Instructions::POP => {
+                self.stack.pop();
+            },
+            Instructions::DUP => {
+                let val = self.stack.pop().expect("ERROR: No data on stack to duplicate");
+                self.stack.push(val);
+                self.stack.push(val);
+            },
+            Instructions::SWAP => {
+                let first_val = self.stack.pop().expect("Insufficient data on the stack");
+                let second_val = self.stack.pop().expect("Insufficient data on the stack");
+                self.stack.push(first_val);
+                self.stack.push(second_val);
+            },
+            Instructions::ADD => {
+                let first_val = self.stack.pop().expect("Insufficient data on the stack");
+                let second_val = self.stack.pop().expect("Insufficient data on the stack");
+                self.stack.push(first_val + second_val);
+            },
+            Instructions::SUB => {
+                let first_val = self.stack.pop().expect("Insufficient data on the stack");
+                let second_val = self.stack.pop().expect("Insufficient data on the stack");
+                self.stack.push(second_val - first_val);
+            },
+            Instructions::MULT => {
+                let first_val = self.stack.pop().expect("Insufficient data on the stack");
+                let second_val = self.stack.pop().expect("Insufficient data on the stack");
+                self.stack.push(first_val * second_val);
+            },
+            Instructions::DIV => {
+                let first_val = self.stack.pop().expect("Insufficient data on the stack");
+                let second_val = self.stack.pop().expect("Insufficient data on the stack");
+                self.stack.push(second_val / first_val);
+            },
+            Instructions::EQ => {
+                let first_val = self.stack.pop().expect("Insufficient data on the stack");
+                let second_val = self.stack.pop().expect("Insufficient data on the stack");
+                if first_val == second_val {
+                    self.stack.push(1);
+                } else {
+                    self.stack.push(0);
+                }
+            },
+            Instructions::LT => {
+                let first_val =  self.stack.pop().expect("Insufficient data on the stack");
+                let second_val = self.stack.pop().expect("Insufficient data on the stack");
+                if second_val < first_val {
+                    self.stack.push(1);
+                } else {
+                    self.stack.push(0);
+                }
+            },
+            Instructions::GT => {
+                let first_val = self.stack.pop().expect("Insufficient data on the stack");
+                let second_val = self.stack.pop().expect("Insufficient data on the stack");
+                if second_val > first_val {
+                    self.stack.push(1);
+                } else {
+                    self.stack.push(0);
+                }
             }
-        },
-        Instructions::LT => {
-            let first_val = stack.pop().expect("Insufficient data on the stack");
-            let second_val = stack.pop().expect("Insufficient data on the stack");
-            if second_val < first_val {
-                stack.push(1);
-            } else {
-                stack.push(0);
-            }
-        },
-        Instructions::GT => {
-            let first_val = stack.pop().expect("Insufficient data on the stack");
-            let second_val = stack.pop().expect("Insufficient data on the stack");
-            if second_val > first_val {
-                stack.push(1);
-            } else {
-                stack.push(0);
-            }
-        }
-        Instructions::If(nested_struct) => {
-            match stack.pop().expect("No binary condition found") {
-                1 => {
-                    for i in nested_struct.If.as_ref().unwrap() {
-                        if let Some(j) = i {
-                            evaluate_instruction(&j, stack, data_stack)
-                        }
-                    }
-                },
-                0 => {
-                    if let Some(instr) = nested_struct.Else.as_ref() {
-                        if instr.len() > 0 {
-                            for i in instr {
-                                if let Some(j) = i {
-                                    evaluate_instruction(&j, stack, data_stack)
-                                }
+            Instructions::If(nested_struct) => {
+                match self.stack.pop().expect("No binary condition found") {
+                    1 => {
+                        for i in nested_struct.If.as_ref().unwrap() {
+                            if let Some(j) = i {
+                                self.evaluate_instruction(&j);
                             }
                         }
-                    } else {
-                        return;
-                    }
-                },
-                _ => panic!("Binary boolean not found")
-            }
-        },
-        Instructions::While(nested_struct) => {
-            for instr in &nested_struct.Cond {
-                if let Some(i) = instr {
-                    evaluate_instruction(&i, stack, data_stack)
+                    },
+                    0 => {
+                        if let Some(instr) = nested_struct.Else.as_ref() {
+                            if instr.len() > 0 {
+                                for i in instr {
+                                    if let Some(j) = i {
+                                        self.evaluate_instruction(&j);
+                                    }
+                                }
+                            }
+                        } else {
+                            return;
+                        }
+                    },
+                    _ => panic!("Binary boolean not found")
                 }
-            }
-            while stack.pop().expect("No value found on stack") == 1 {
-                for instr in &nested_struct.Contents {
-                    if let Some(i) = instr {
-                        evaluate_instruction(&i, stack, data_stack)
-                    }
-                }
+            },
+            Instructions::While(nested_struct) => {
                 for instr in &nested_struct.Cond {
                     if let Some(i) = instr {
-                        evaluate_instruction(&i, stack, data_stack)
+                        self.evaluate_instruction(&i);
                     }
                 }
-            }
-        },
-        Instructions::VARDECLARE(nested_struct) => {
-            for instr in &nested_struct.instructions {
-                evaluate_instruction(&instr.as_ref().unwrap(), stack, data_stack);
-            }
-            data_stack.insert(
-                nested_struct.name.to_string(),
-                stack.pop().unwrap()
-            );
-        },
-        Instructions::REFERENCE(name) => {
-            if let Some(data) = data_stack.get(name) {
-                stack.push(*data);
-            } else {
-                eprintln!("Unexpected token {}", name);
-                std::process::exit(1);
+                while self.stack.pop().expect("No value found on stack") == 1 {
+                    for instr in &nested_struct.Contents {
+                        if let Some(i) = instr {
+                            self.evaluate_instruction(&i);
+                        }
+                    }
+                    for instr in &nested_struct.Cond {
+                        if let Some(i) = instr {
+                            self.evaluate_instruction(&i);
+                        }
+                    }
+                }
+            },
+            Instructions::VARDECLARE(nested_struct) => {
+                
+                for instr in &nested_struct.instructions {
+                    self.evaluate_instruction(&instr.as_ref().unwrap());
+                }
+                self.data_stack.insert(
+                    nested_struct.name.to_string(),
+                    self.stack.pop().unwrap()
+                );
+            },
+            Instructions::IDENTIFIER(data_name) => {
+                
+                if let Some(data) = self.data_stack.get(data_name) {
+                    self.stack.push(*data);
+                } else {
+                    println!("{:?}", self.data_stack);
+                    eprintln!("Unexpected token {}", data_name);
+                    std::process::exit(1);
+                }
+            },
+            Instructions::SPAWN(name) => {
+                self.stack_stack.insert(
+                    name.to_string(),
+                    Vec::new()
+                );
+            },
+            Instructions::SWITCH(name) => {
+                let tmp_stack: Vec <i32>;
+                self.stack = match self.stack_stack.get(name) {
+                    Some(vec) => {
+                        tmp_stack = vec.to_vec();
+                        self.stack_stack.insert(
+                            self.current_stack.to_string(),
+                            self.stack.clone()
+                        );
+                        self.current_stack = name.to_string();
+                        tmp_stack
+                    },
+                    None => {
+                        eprintln!("ERROR: Stack with name {} not found", name);
+                        std::process::exit(1);
+                    }
+                }
+            },
+            Instructions::CLOSE(name) => {
+                if name == "main" {
+                    eprintln!("ERROR: Cannot remove main stack");
+                    std::process::exit(1);
+                } else if name.to_string() == self.current_stack {
+                    eprintln!("ERROR: Cannot remove stack you are currently working in");
+                    std::process::exit(1);
+                }
+                self.stack_stack.remove(name);
+            },
+            Instructions::STACKS => {
+                println!("Stacks: ");
+                for k in self.stack_stack.keys() {println!("  {}", k)};
             }
         }
     }
-}
 
-fn simulate<'a>(stack: &'a mut Vec<i32>, data_stack: &'a mut HashMap<String, i32>, instructions: &'a Vec<Option<Instruction>>) {
-    for instruction in instructions {
-        match &instruction {
-            Some(i) => {
-                evaluate_instruction(&i, stack, data_stack);
-            },
-            None => continue
+    fn simulate(&mut self) {
+        self.stack_stack.insert(
+            "main".to_string(),
+            Vec::new()
+        );
+
+        for instruction in self.instructions {
+            match &instruction {
+                Some(i) => {
+                    self.evaluate_instruction(&i);
+                },
+                None => continue
+            }
         }
     }
 }
@@ -537,8 +627,6 @@ fn main() {
     }
 
     let mut operations: Vec<Option<Operation>> = Vec::new();
-    let mut stack: Vec<i32> = Vec::new();
-    let mut data_stack: HashMap<String, i32> = HashMap::new();
 
     let lex = Lexer::from_file(&args[1]).unwrap();
 
@@ -556,6 +644,14 @@ fn main() {
         instructions.push(Some(instr));
     }
 
-    simulate(&mut stack, &mut data_stack, &instructions);
+    let mut program = Program {
+        instructions: &instructions,
+        stack: Vec::new(),
+        current_stack: "main".to_string(),
+        data_stack: &mut HashMap::new(),
+        stack_stack: &mut HashMap::new()
+    };
+
+    program.simulate();
     // println!("{:?}", instructions);
 }
