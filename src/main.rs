@@ -12,6 +12,7 @@ enum OpCodes {
     PUSH, // Begin stack manipulation
     POP,
     PRINT,
+    PRINTASCII,
     DUP,
     SWAP,
     ADD, // Begin arithmetic
@@ -32,7 +33,8 @@ enum OpCodes {
     SPAWN(String), // Begin spawnable stacks
     SWITCH(String),
     CLOSE(String),
-    STACKS
+    STACKS,
+    STRING(Vec<Option<Operation>>)
 }
 
 #[derive(Debug)]
@@ -40,6 +42,7 @@ enum Instructions {
     PUSH,
     POP,
     PRINT,
+    PRINTASCII,
     DUP,
     SWAP,
     ADD,
@@ -56,18 +59,19 @@ enum Instructions {
     SPAWN(String),
     SWITCH(String),
     CLOSE(String),
-    STACKS
+    STACKS,
+    STRING(Vec<Option<Instruction>>)
 }
 
 #[derive(PartialEq)]
 #[derive(Debug)]
 struct Operation {
     OpCode: OpCodes,
-    Contents: Option<i32>
+    Contents: Option<u8>
 }
 
 impl Operation {
-    fn new(opcode: OpCodes, contents: Option<i32>) -> Self {
+    fn new(opcode: OpCodes, contents: Option<u8>) -> Self {
         Operation {
             OpCode: opcode,
             Contents: contents
@@ -78,11 +82,11 @@ impl Operation {
 #[derive(Debug)]
 struct Instruction {
     Instruction: Instructions,
-    Contents: Option<i32>
+    Contents: Option<u8>
 }
 
 impl Instruction {
-    fn new(instr: Instructions, contents: Option<i32>) -> Self {
+    fn new(instr: Instructions, contents: Option<u8>) -> Self {
         Instruction {
             Instruction: instr,
             Contents: contents
@@ -185,11 +189,37 @@ impl Iterator for Lexer {
             }
 
             if !first_char.is_numeric() {
-                if first_char == '@' {
+                if first_char == '@' { // Variable declaration
                     let token: String = self.raw_data.next().expect("ERROR: No character found").to_string();
                     let name = self.get_next_char_while(token, |c| Self::is_alphanumeric(c));
 
                     return Some(Operation::new(OpCodes::VARDECLARE(name.to_string()), None));
+                } else if first_char == '"' { // String literal
+                    let mut res: String = self.raw_data.next().expect("ERROR: Unexpected character \"").to_string();
+                    while self.raw_data.peek() != Some(&'"') {
+                        res.push(self.raw_data.next().unwrap());
+                    }
+                    self.raw_data.next();
+
+                    let mut name: String = String::new();
+                    let mut words = res.split_whitespace();
+                    for _i in 0..3 {
+                        if let Some(word) = words.next() {
+                            word.is_ascii()
+                            name.push_str(word);
+                            name.push('_');
+                        }
+                    }
+
+                    res = res.chars().rev().collect::<String>();
+
+                    let mut instr: Vec<Option<Operation>> = Vec::new();
+                    instr.push(Some(Operation::new(OpCodes::SPAWN(name.clone()), None)));
+                    instr.push(Some(Operation::new(OpCodes::SWITCH(name.clone()), None)));
+                    for char in res.chars() {
+                        instr.push(Some(Operation::new(OpCodes::PUSH, Some(char as u8))))
+                    }
+                    return Some(Operation::new(OpCodes::STRING(instr), None));
                 } else {
                     let token: String = first_char.to_string();
                     let identifier = self.get_next_char_while(token, |c| Self::is_alphanumeric(c));
@@ -205,6 +235,7 @@ impl Iterator for Lexer {
                         "+" => return Some(Operation::new(OpCodes::ADD, None)),
                         "-" => return Some(Operation::new(OpCodes::SUB, None)),
                         "print" => return Some(Operation::new(OpCodes::PRINT, None)),
+                        "print_ascii" => return Some(Operation::new(OpCodes::PRINTASCII, None)),
                         "=" => return Some(Operation::new(OpCodes::EQ, None)),
                         "<" => return Some(Operation::new(OpCodes::LT, None)),
                         ">" => return Some(Operation::new(OpCodes::GT, None)),
@@ -241,7 +272,7 @@ impl Iterator for Lexer {
             else if first_char.is_numeric() {
                 return Some(Operation::new(OpCodes::PUSH,
                                            Some(self.get_numeric(first_char)
-                                               .parse::<i32>()
+                                               .parse::<u8>()
                                                .unwrap())))
             }
         }
@@ -264,6 +295,7 @@ impl Parser {
         match op.OpCode {
             OpCodes::PUSH => return Some(Instruction::new(Instructions::PUSH, Some(op.Contents.expect("this literally should not be possible")))),
             OpCodes::PRINT => return Some(Instruction::new(Instructions::PRINT, None)),
+            OpCodes::PRINTASCII => return Some(Instruction::new(Instructions::PRINTASCII, None)),
             OpCodes::POP => return Some(Instruction::new(Instructions::POP, None)),
             OpCodes::DUP => return Some(Instruction::new(Instructions::DUP, None)),
             OpCodes::SWAP => return Some(Instruction::new(Instructions::SWAP, None)),
@@ -394,7 +426,16 @@ impl Parser {
             OpCodes::SPAWN(name) => Some(Instruction::new(Instructions::SPAWN(name), None)),
             OpCodes::SWITCH(name) => Some(Instruction::new(Instructions::SWITCH(name), None)),
             OpCodes::CLOSE(name) => Some(Instruction::new(Instructions::CLOSE(name), None)),
-            OpCodes::STACKS => Some(Instruction::new(Instructions::STACKS, None))
+            OpCodes::STACKS => Some(Instruction::new(Instructions::STACKS, None)),
+            OpCodes::STRING(contents) => {
+                let mut instrs = Vec::new();
+                for i in contents {
+                    if let Some(instr)= i {
+                        instrs.push(self.gen_instruction_from_op(instr));
+                    }
+                }
+                Some(Instruction::new(Instructions::STRING(instrs), None))
+            }
         }
     }
 }
@@ -420,10 +461,10 @@ impl Iterator for Parser {
 
 struct Program<'a> {
     instructions: &'a Vec<Option<Instruction>>,
-    stack: Vec<i32>,
+    stack: Vec<u8>,
     current_stack: String,
-    data_stack: &'a mut HashMap<String, i32>,
-    stack_stack: &'a mut HashMap<String, Vec<i32>>,
+    data_stack: &'a mut HashMap<String, u8>,
+    stack_stack: &'a mut HashMap<String, Vec<u8>>,
 }
 
 impl<'a> Program<'a> {
@@ -433,8 +474,11 @@ impl<'a> Program<'a> {
                 self.stack.push(instruction.Contents.expect("ERROR: No data found to push to stack"));
             },
             Instructions::PRINT => {
-                println!("{:?}", self.stack.pop().expect("Cannot pop value from empty stack"))
+                println!("{:?}", self.stack.pop().expect("Cannot pop value from empty stack"));
             },
+            Instructions::PRINTASCII => {
+                print!("{}", self.stack.pop().expect("Cannot pop value from empty stack") as char);
+            }
             Instructions::POP => {
                 self.stack.pop();
             },
@@ -555,7 +599,6 @@ impl<'a> Program<'a> {
                 if let Some(data) = self.data_stack.get(data_name) {
                     self.stack.push(*data);
                 } else {
-                    println!("{:?}", self.data_stack);
                     eprintln!("Unexpected token {}", data_name);
                     std::process::exit(1);
                 }
@@ -567,7 +610,7 @@ impl<'a> Program<'a> {
                 );
             },
             Instructions::SWITCH(name) => {
-                let tmp_stack: Vec <i32>;
+                let tmp_stack: Vec <u8>;
                 self.stack = match self.stack_stack.get(name) {
                     Some(vec) => {
                         tmp_stack = vec.to_vec();
@@ -597,6 +640,15 @@ impl<'a> Program<'a> {
             Instructions::STACKS => {
                 println!("Stacks: ");
                 for k in self.stack_stack.keys() {println!("  {}", k)};
+            },
+            Instructions::STRING(nested_instructions) => {
+                let prev_stack = self.current_stack.clone();
+                for instruction in nested_instructions {
+                    if let Some(instr) = instruction {
+                        self.evaluate_instruction(instr);
+                    }
+                }
+                self.evaluate_instruction(&Instruction::new(Instructions::SWITCH(prev_stack), None));
             }
         }
     }
