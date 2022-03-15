@@ -109,3 +109,21 @@ ex:
 @my_var 42 def
 my_var print
 ```
+
+### Spawnable Stacks
+
+**Generate a new stack using the "spawn" keyword**
+
+**Switch to that stack using the "switch" keyword**
+
+**Close the stack using the "close" keyword**
+```
+spawn <stack name>
+switch <stack name>
+
+<operations>
+
+close <stack name>
+```
+
+You can list all existing stacks using the "stack" keyword.
