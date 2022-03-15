@@ -34,7 +34,9 @@ enum OpCodes {
     SWITCH(String),
     CLOSE(String),
     STACKS,
-    STRING(Vec<Option<Operation>>)
+    STACKSIZE,
+    STACKREV,
+    STRING(Vec<Option<Operation>>) // String literal
 }
 
 #[derive(Debug)]
@@ -60,6 +62,8 @@ enum Instructions {
     SWITCH(String),
     CLOSE(String),
     STACKS,
+    STACKSIZE,
+    STACKREV,
     STRING(Vec<Option<Instruction>>)
 }
 
@@ -189,7 +193,15 @@ impl Iterator for Lexer {
             }
 
             if !first_char.is_numeric() {
-                if first_char == '@' { // Variable declaration
+                if first_char == '/' {
+                    if let Some(char) = self.raw_data.next() {
+                        if char == '/' {
+                            while let Some(c) = self.raw_data.next() {
+                                if c != '\n' { continue; } else { break; }
+                            }
+                        }
+                    }
+                } else if first_char == '@' { // Variable declaration
                     let token: String = self.raw_data.next().expect("ERROR: No character found").to_string();
                     let name = self.get_next_char_while(token, |c| Self::is_alphanumeric(c));
 
@@ -197,20 +209,27 @@ impl Iterator for Lexer {
                 } else if first_char == '"' { // String literal
                     let mut res: String = self.raw_data.next().expect("ERROR: Unexpected character \"").to_string();
                     while self.raw_data.peek() != Some(&'"') {
-                        res.push(self.raw_data.next().unwrap());
+                        let char = self.raw_data.next();
+                        if let Some(c) = char {
+                            if c == '\\' {
+                                if self.raw_data.next().unwrap() == 'n' {
+                                    res.push('\n');
+                                }
+                            } else {res.push(c);}
+                        }
                     }
                     self.raw_data.next();
 
                     let mut name: String = String::new();
                     let mut words = res.split_whitespace();
-                    for _i in 0..3 {
-                        if let Some(word) = words.next() {
-                            name.push_str(word);
-                            name.push('_');
+                    for _i in 1..3 {
+                        for char in words.next().unwrap().to_string().chars() {
+                            if char.is_alphabetic() {
+                                name.push(char);
+                            }
                         }
+                        name.push('_');
                     }
-
-                    res = res.chars().rev().collect::<String>();
 
                     let mut instr: Vec<Option<Operation>> = Vec::new();
                     instr.push(Some(Operation::new(OpCodes::SPAWN(name.clone()), None)));
@@ -263,6 +282,8 @@ impl Iterator for Lexer {
                             return Some(Operation::new(OpCodes::CLOSE(name.to_string()), None));
                         },
                         "stacks" => return Some(Operation::new(OpCodes::STACKS, None)),
+                        "stack_size" => return Some(Operation::new(OpCodes::STACKSIZE, None)),
+                        "stack_rev" => return Some(Operation::new(OpCodes::STACKREV, None)),
                         _ => return Some(Operation::new(OpCodes::IDENTIFIER(identifier.trim().to_string()), None))
                     }
                 }
@@ -426,6 +447,7 @@ impl Parser {
             OpCodes::SWITCH(name) => Some(Instruction::new(Instructions::SWITCH(name), None)),
             OpCodes::CLOSE(name) => Some(Instruction::new(Instructions::CLOSE(name), None)),
             OpCodes::STACKS => Some(Instruction::new(Instructions::STACKS, None)),
+            OpCodes::STACKSIZE => Some(Instruction::new(Instructions::STACKSIZE, None)),
             OpCodes::STRING(contents) => {
                 let mut instrs = Vec::new();
                 for i in contents {
@@ -434,7 +456,8 @@ impl Parser {
                     }
                 }
                 Some(Instruction::new(Instructions::STRING(instrs), None))
-            }
+            },
+            OpCodes::STACKREV => Some(Instruction::new(Instructions::STACKREV, None)),
         }
     }
 }
@@ -639,6 +662,12 @@ impl<'a> Program<'a> {
             Instructions::STACKS => {
                 println!("Stacks: ");
                 for k in self.stack_stack.keys() {println!("  {}", k)};
+            },
+            Instructions::STACKSIZE => {
+                self.stack.push(self.stack.len() as u8);
+            },
+            Instructions::STACKREV => {
+                self.stack.reverse();
             },
             Instructions::STRING(nested_instructions) => {
                 let prev_stack = self.current_stack.clone();
