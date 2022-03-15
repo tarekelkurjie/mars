@@ -4,9 +4,9 @@
 Syntax heavily inspired by [porth](https://gitlab.com/tsoding/porth)
 
 ## To-Do
-- [ ] Implement all basic programming uses (if/else, loops, variables, functions, etc)
+- [x] Implement all basic programming uses (if/else, loops, variables, etc)
+- [x] Implement string literals
 - [ ] Better error handling
-- [ ] Implement string literals
 - [ ] Implement import/export system (either simple C-like 'include' or a module system)
 - [ ] Write a compiler
 - [ ] Write a standard library
