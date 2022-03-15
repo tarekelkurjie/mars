@@ -126,4 +126,35 @@ switch <stack name>
 close <stack name>
 ```
 
-You can list all existing stacks using the "stack" keyword.
+**Tools:**
+- You can list all existing stacks using the "stack" keyword.
+- You can reverse the current stack using stack_rev
+- You can get the size of the current stack using stack_size
+
+
+### String literals
+
+**Create a string literal using double quotes:**
+```
+"Hello, World!\n"
+```
+
+String literals don't get pushed to the stack. Rather, a new stack gets
+generated containing the ascii representation of each character in the string literal.
+The name of the stack is the first 3 available words in the string, with underscores in place
+of whitepsace and one trailing underscore at the end.
+
+```
+"Hello, World!\n"
+switch Hello_World_
+stack_rev //Since strings are pushed in reverse order, we need to reverse the stack
+
+@counter 0 def
+@size stack_size def
+while counter size < do
+    print_ascii
+    @counter counter 1 + def
+end
+```
+
+*This whole thing will most likely be put in a procedure/macro in the future standard library*
