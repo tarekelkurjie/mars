@@ -251,13 +251,15 @@ impl Iterator for Lexer {
 
                     let mut name: String = String::new();
                     let mut words = res.split_whitespace();
-                    for _i in 1..3 {
-                        for char in words.next().unwrap().to_string().chars() {
-                            if char.is_alphabetic() {
-                                name.push(char);
+                    for _i in 0..3 {
+                        if let Some(unwrapped) = words.next() {
+                            for char in unwrapped.to_string().chars() {
+                                if char.is_alphabetic() {
+                                    name.push(char);
+                                }
                             }
+                            name.push('_');
                         }
-                        name.push('_');
                     }
 
                     let mut instr: Vec<Option<Operation>> = Vec::new();
