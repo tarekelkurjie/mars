@@ -158,3 +158,31 @@ end
 ```
 
 *This whole thing will most likely be put in a procedure/macro in the future standard library*
+
+### Macros
+
+Define a macro using the 'macro' keyword.
+```
+macro <name>
+    <body>
+end
+
+<name> // Calls the macro
+```
+
+For example:
+```
+macro print_str
+    stack_rev
+    @counter 0 def
+    @size stack_size def
+    while counter size < do
+        print_ascii
+        @counter counter 1 + def
+    end
+end
+
+"Hello, World!\n"
+switch Hello_World_
+print_str
+```

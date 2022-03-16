@@ -36,10 +36,11 @@ enum OpCodes {
     STACKS,
     STACKSIZE,
     STACKREV,
-    STRING(Vec<Option<Operation>>) // String literal
+    STRING(Vec<Option<Operation>>), // String literal
+    MACRO(String)
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Instructions {
     PUSH,
     POP,
@@ -64,11 +65,11 @@ enum Instructions {
     STACKS,
     STACKSIZE,
     STACKREV,
-    STRING(Vec<Option<Instruction>>)
+    STRING(Vec<Option<Instruction>>),
+    MACRO(Macro)
 }
 
-#[derive(PartialEq)]
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 struct Operation {
     OpCode: OpCodes,
     Contents: Option<u8>
@@ -83,7 +84,7 @@ impl Operation {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Instruction {
     Instruction: Instructions,
     Contents: Option<u8>
@@ -98,7 +99,7 @@ impl Instruction {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct While {
     Cond: Vec<Option<Instruction>>,
     Contents: Vec<Option<Instruction>>
@@ -113,7 +114,7 @@ impl While {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug , Clone)]
 struct IfElse {
     If: Option<Vec<Option<Instruction>>>,
     Else: Option<Vec<Option<Instruction>>>
@@ -128,8 +129,14 @@ impl IfElse {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct VariableDefine {
+    name: String,
+    instructions: Vec<Option<Instruction>>
+}
+
+#[derive(Debug, Clone)]
+struct Macro {
     name: String,
     instructions: Vec<Option<Instruction>>
 }
@@ -138,6 +145,28 @@ struct VariableDefine {
 struct Lexer {
     raw_data: Peekable<IntoIter<char>>,
 }
+
+const RESERVED_KEYWORDS: [&str; 19] = [
+    "print",
+    "print_ascii",
+    "pop",
+    "push",
+    "swap",
+    "dup",
+    "do",
+    "end",
+    "def",
+    "if",
+    "else",
+    "while",
+    "spawn",
+    "switch",
+    "stacks",
+    "stack_rev",
+    "stack_size",
+    "close",
+    "macro"
+];
 
 
 impl Lexer {
@@ -284,6 +313,13 @@ impl Iterator for Lexer {
                         "stacks" => return Some(Operation::new(OpCodes::STACKS, None)),
                         "stack_size" => return Some(Operation::new(OpCodes::STACKSIZE, None)),
                         "stack_rev" => return Some(Operation::new(OpCodes::STACKREV, None)),
+                        "macro" => {
+                            self.raw_data.next();
+                            let token: String = self.raw_data.next().expect("ERROR: No character found").to_string();
+                            let name = self.get_next_char_while(token, |c| Self::is_alphanumeric(c));
+
+                            return Some(Operation::new(OpCodes::MACRO(name), None));
+                        }
                         _ => return Some(Operation::new(OpCodes::IDENTIFIER(identifier.trim().to_string()), None))
                     }
                 }
@@ -432,6 +468,10 @@ impl Parser {
                         if j.OpCode != OpCodes::DEFINE {
                             instr.push(self.gen_instruction_from_op(j));
                         } else {
+                            if RESERVED_KEYWORDS.contains(&name.as_str()) {
+                                eprintln!("ERROR: Cannot assign variable with name of assigned keyword ({})", name);
+                                std::process::exit(1);
+                            }
                             return Some(Instruction::new(Instructions::VARDECLARE(VariableDefine {name: name.to_string(), instructions: instr}), None));
                         }
                     }
@@ -458,6 +498,21 @@ impl Parser {
                 Some(Instruction::new(Instructions::STRING(instrs), None))
             },
             OpCodes::STACKREV => Some(Instruction::new(Instructions::STACKREV, None)),
+            OpCodes::MACRO(name) => {
+                let mut instrs: Vec<Option<Instruction>> = Vec::new();
+
+                while let Some(i) = self.operations.next() {
+                    match i {
+                        Some(j) => {
+                            if j.OpCode != OpCodes::END {
+                                instrs.push(self.gen_instruction_from_op(j))
+                            } else {return Some(Instruction::new(Instructions::MACRO( Macro { name: name, instructions: instrs}), None))}
+                        },
+                        None => continue
+                    }
+                }
+                Some(Instruction::new(Instructions::MACRO( Macro { name: name, instructions: instrs}), None))
+            }
         }
     }
 }
@@ -486,6 +541,7 @@ struct Program<'a> {
     stack: Vec<u8>,
     current_stack: String,
     data_stack: &'a mut HashMap<String, u8>,
+    macro_stack: &'a mut HashMap<String, Vec<Option<Instruction>>>,
     stack_stack: &'a mut HashMap<String, Vec<u8>>,
 }
 
@@ -617,15 +673,26 @@ impl<'a> Program<'a> {
                 );
             },
             Instructions::IDENTIFIER(data_name) => {
-                
                 if let Some(data) = self.data_stack.get(data_name) {
                     self.stack.push(*data);
                 } else {
-                    eprintln!("Unexpected token {}", data_name);
-                    std::process::exit(1);
+                    let mut value: &Vec<Option<Instruction>> = &Vec::new();
+                    if let Some(val) = self.macro_stack.get(data_name) {
+                        value = val;
+                    }
+
+                    for instr in value.to_vec() {
+                        if let Some(i) = instr {
+                            self.evaluate_instruction(&i);
+                        }
+                    }
                 }
             },
             Instructions::SPAWN(name) => {
+                if RESERVED_KEYWORDS.contains(&name.as_str()) {
+                    eprintln!("ERROR: Cannot assign variable with name of assigned keyword ({})", name);
+                    std::process::exit(1);
+                }
                 self.stack_stack.insert(
                     name.to_string(),
                     Vec::new()
@@ -677,6 +744,16 @@ impl<'a> Program<'a> {
                     }
                 }
                 self.evaluate_instruction(&Instruction::new(Instructions::SWITCH(prev_stack), None));
+            },
+            Instructions::MACRO(nested_instructions) => {
+                if RESERVED_KEYWORDS.contains(&nested_instructions.name.as_str()) {
+                    eprintln!("ERROR: Cannot assign variable with name of assigned keyword ({})", nested_instructions.name);
+                    std::process::exit(1);
+                }
+                self.macro_stack.insert(
+                    nested_instructions.to_owned().name,
+                    nested_instructions.to_owned().instructions
+                );
             }
         }
     }
@@ -729,6 +806,7 @@ fn main() {
         stack: Vec::new(),
         current_stack: "main".to_string(),
         data_stack: &mut HashMap::new(),
+        macro_stack: &mut HashMap::new(),
         stack_stack: &mut HashMap::new()
     };
 
