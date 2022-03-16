@@ -36,7 +36,8 @@ enum OpCodes {
     STACKS,
     STACKSIZE,
     STACKREV,
-    STRING(Vec<Option<Operation>>) // String literal
+    STRING(Vec<Option<Operation>>), // String literal
+    MACRO(String)
 }
 
 #[derive(Debug)]
@@ -64,7 +65,8 @@ enum Instructions {
     STACKS,
     STACKSIZE,
     STACKREV,
-    STRING(Vec<Option<Instruction>>)
+    STRING(Vec<Option<Instruction>>),
+    MACRO(Macro)
 }
 
 #[derive(PartialEq)]
@@ -130,6 +132,12 @@ impl IfElse {
 
 #[derive(Debug)]
 struct VariableDefine {
+    name: String,
+    instructions: Vec<Option<Instruction>>
+}
+
+#[derive(Debug)]
+struct Macro {
     name: String,
     instructions: Vec<Option<Instruction>>
 }
@@ -284,6 +292,13 @@ impl Iterator for Lexer {
                         "stacks" => return Some(Operation::new(OpCodes::STACKS, None)),
                         "stack_size" => return Some(Operation::new(OpCodes::STACKSIZE, None)),
                         "stack_rev" => return Some(Operation::new(OpCodes::STACKREV, None)),
+                        "macro" => {
+                            self.raw_data.next();
+                            let token: String = self.raw_data.next().expect("ERROR: No character found").to_string();
+                            let name = self.get_next_char_while(token, |c| Self::is_alphanumeric(c));
+
+                            return Some(Operation::new(OpCodes::MACRO(name), None));
+                        }
                         _ => return Some(Operation::new(OpCodes::IDENTIFIER(identifier.trim().to_string()), None))
                     }
                 }
@@ -458,6 +473,21 @@ impl Parser {
                 Some(Instruction::new(Instructions::STRING(instrs), None))
             },
             OpCodes::STACKREV => Some(Instruction::new(Instructions::STACKREV, None)),
+            OpCodes::MACRO(name) => {
+                let mut instrs: Vec<Option<Instruction>> = Vec::new();
+
+                while let Some(i) = self.operations.next() {
+                    match i {
+                        Some(j) => {
+                            if j.OpCode != OpCodes::END {
+                                instrs.push(self.gen_instruction_from_op(j))
+                            }
+                        },
+                        None => continue
+                    }
+                }
+                Some(Instruction::new(Instructions::MACRO( Macro { name: name, instructions: instrs}), None))
+            }
         }
     }
 }
@@ -486,6 +516,7 @@ struct Program<'a> {
     stack: Vec<u8>,
     current_stack: String,
     data_stack: &'a mut HashMap<String, u8>,
+    macro_stack: &'a mut HashMap<String, Vec<Option<Instruction>>>,
     stack_stack: &'a mut HashMap<String, Vec<u8>>,
 }
 
@@ -617,12 +648,19 @@ impl<'a> Program<'a> {
                 );
             },
             Instructions::IDENTIFIER(data_name) => {
-                
                 if let Some(data) = self.data_stack.get(data_name) {
                     self.stack.push(*data);
                 } else {
-                    eprintln!("Unexpected token {}", data_name);
-                    std::process::exit(1);
+                    let mut macro_stack: HashMap<String, Vec<Option<Instruction>>>;
+                    macro_stack.extend(&mut self.macro_stack.into_iter());
+
+                    if let Some(val) = macro_stack.get(data_name) {
+                        for i in val {
+                            if let Some(instr) = i {
+                                self.evaluate_instruction(instr);
+                            }
+                        }
+                    }
                 }
             },
             Instructions::SPAWN(name) => {
@@ -677,6 +715,14 @@ impl<'a> Program<'a> {
                     }
                 }
                 self.evaluate_instruction(&Instruction::new(Instructions::SWITCH(prev_stack), None));
+            },
+            Instructions::MACRO(nested_instructions) => {
+                if let &m = nested_instructions {
+                    self.macro_stack.insert(
+                        m.name,
+                        m.instructions
+                    );
+                }
             }
         }
     }
@@ -729,6 +775,7 @@ fn main() {
         stack: Vec::new(),
         current_stack: "main".to_string(),
         data_stack: &mut HashMap::new(),
+        macro_stack: &mut HashMap::new(),
         stack_stack: &mut HashMap::new()
     };
 
