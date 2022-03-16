@@ -40,7 +40,7 @@ enum OpCodes {
     MACRO(String)
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Instructions {
     PUSH,
     POP,
@@ -69,8 +69,7 @@ enum Instructions {
     MACRO(Macro)
 }
 
-#[derive(PartialEq)]
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 struct Operation {
     OpCode: OpCodes,
     Contents: Option<u8>
@@ -85,7 +84,7 @@ impl Operation {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Instruction {
     Instruction: Instructions,
     Contents: Option<u8>
@@ -100,7 +99,7 @@ impl Instruction {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct While {
     Cond: Vec<Option<Instruction>>,
     Contents: Vec<Option<Instruction>>
@@ -115,7 +114,7 @@ impl While {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug , Clone)]
 struct IfElse {
     If: Option<Vec<Option<Instruction>>>,
     Else: Option<Vec<Option<Instruction>>>
@@ -130,13 +129,13 @@ impl IfElse {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct VariableDefine {
     name: String,
     instructions: Vec<Option<Instruction>>
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Macro {
     name: String,
     instructions: Vec<Option<Instruction>>
@@ -481,7 +480,7 @@ impl Parser {
                         Some(j) => {
                             if j.OpCode != OpCodes::END {
                                 instrs.push(self.gen_instruction_from_op(j))
-                            }
+                            } else {return Some(Instruction::new(Instructions::MACRO( Macro { name: name, instructions: instrs}), None))}
                         },
                         None => continue
                     }
@@ -651,14 +650,14 @@ impl<'a> Program<'a> {
                 if let Some(data) = self.data_stack.get(data_name) {
                     self.stack.push(*data);
                 } else {
-                    let mut macro_stack: HashMap<String, Vec<Option<Instruction>>>;
-                    macro_stack.extend(&mut self.macro_stack.into_iter());
+                    let mut value: &Vec<Option<Instruction>> = &Vec::new();
+                    if let Some(val) = self.macro_stack.get(data_name) {
+                        value = val;
+                    }
 
-                    if let Some(val) = macro_stack.get(data_name) {
-                        for i in val {
-                            if let Some(instr) = i {
-                                self.evaluate_instruction(instr);
-                            }
+                    for instr in value.to_vec() {
+                        if let Some(i) = instr {
+                            self.evaluate_instruction(&i);
                         }
                     }
                 }
@@ -717,12 +716,10 @@ impl<'a> Program<'a> {
                 self.evaluate_instruction(&Instruction::new(Instructions::SWITCH(prev_stack), None));
             },
             Instructions::MACRO(nested_instructions) => {
-                if let &m = nested_instructions {
-                    self.macro_stack.insert(
-                        m.name,
-                        m.instructions
-                    );
-                }
+                self.macro_stack.insert(
+                    nested_instructions.to_owned().name,
+                    nested_instructions.to_owned().instructions
+                );
             }
         }
     }
