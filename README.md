@@ -4,9 +4,9 @@
 Syntax heavily inspired by [porth](https://gitlab.com/tsoding/porth)
 
 ## To-Do
-- [ ] Implement all basic programming uses (if/else, loops, variables, functions, etc)
+- [x] Implement all basic programming uses (if/else, loops, variables, etc)
+- [x] Implement string literals
 - [ ] Better error handling
-- [ ] Implement string literals
 - [ ] Implement import/export system (either simple C-like 'include' or a module system)
 - [ ] Write a compiler
 - [ ] Write a standard library
@@ -108,4 +108,81 @@ ex:
 ```
 @my_var 42 def
 my_var print
+```
+
+### Spawnable Stacks
+
+**Generate a new stack using the "spawn" keyword**
+
+**Switch to that stack using the "switch" keyword**
+
+**Close the stack using the "close" keyword**
+```
+spawn <stack name>
+switch <stack name>
+
+<operations>
+
+close <stack name>
+```
+
+**Tools:**
+- You can list all existing stacks using the "stack" keyword.
+- You can reverse the current stack using stack_rev
+- You can get the size of the current stack using stack_size
+
+
+### String literals
+
+**Create a string literal using double quotes:**
+```
+"Hello, World!\n"
+```
+
+String literals don't get pushed to the stack. Rather, a new stack gets
+generated containing the ascii representation of each character in the string literal.
+The name of the stack is the first 3 available words in the string, with underscores in place
+of whitepsace and one trailing underscore at the end.
+
+```
+"Hello, World!\n"
+switch Hello_World_
+stack_rev //Since strings are pushed in reverse order, we need to reverse the stack
+
+@counter 0 def
+@size stack_size def
+while counter size < do
+    print_ascii
+    @counter counter 1 + def
+end
+```
+
+*This whole thing will most likely be put in a procedure/macro in the future standard library*
+
+### Macros
+
+Define a macro using the 'macro' keyword.
+```
+macro <name>
+    <body>
+end
+
+<name> // Calls the macro
+```
+
+For example:
+```
+macro print_str
+    stack_rev
+    @counter 0 def
+    @size stack_size def
+    while counter size < do
+        print_ascii
+        @counter counter 1 + def
+    end
+end
+
+"Hello, World!\n"
+switch Hello_World_
+print_str
 ```

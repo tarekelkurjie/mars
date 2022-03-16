@@ -3,4 +3,5 @@
 
 /.idea
 
-./foo.mars
+./src/foo.mars
+foo.mars

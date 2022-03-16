@@ -1,0 +1,13 @@
+spawn stack_one
+switch stack_one
+    1 2 3 print
+switch main
+    3 2 1 print
+
+@count 1 def
+while count 0 > do
+    switch stack_one print
+    switch main print
+
+    @count count 1 - def
+end
