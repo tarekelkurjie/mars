@@ -146,6 +146,26 @@ struct Lexer {
     raw_data: Peekable<IntoIter<char>>,
 }
 
+const RESERVED_KEYWORDS: [&str; 17] = [
+    "print",
+    "print_ascii",
+    "pop",
+    "push",
+    "swap",
+    "dup",
+    "do",
+    "end",
+    "if",
+    "else",
+    "while",
+    "spawn",
+    "switch",
+    "stacks",
+    "stack_size",
+    "close",
+    "macro"
+];
+
 
 impl Lexer {
     fn from_text(text: &str) -> Self {
@@ -446,6 +466,10 @@ impl Parser {
                         if j.OpCode != OpCodes::DEFINE {
                             instr.push(self.gen_instruction_from_op(j));
                         } else {
+                            if RESERVED_KEYWORDS.contains(&name.as_str()) {
+                                eprintln!("ERROR: Cannot assign variable with name of assigned keyword ({})", name);
+                                std::process::exit(1);
+                            }
                             return Some(Instruction::new(Instructions::VARDECLARE(VariableDefine {name: name.to_string(), instructions: instr}), None));
                         }
                     }
@@ -663,6 +687,10 @@ impl<'a> Program<'a> {
                 }
             },
             Instructions::SPAWN(name) => {
+                if RESERVED_KEYWORDS.contains(&name.as_str()) {
+                    eprintln!("ERROR: Cannot assign variable with name of assigned keyword ({})", name);
+                    std::process::exit(1);
+                }
                 self.stack_stack.insert(
                     name.to_string(),
                     Vec::new()
@@ -716,6 +744,10 @@ impl<'a> Program<'a> {
                 self.evaluate_instruction(&Instruction::new(Instructions::SWITCH(prev_stack), None));
             },
             Instructions::MACRO(nested_instructions) => {
+                if RESERVED_KEYWORDS.contains(&nested_instructions.name.as_str()) {
+                    eprintln!("ERROR: Cannot assign variable with name of assigned keyword ({})", nested_instructions.name);
+                    std::process::exit(1);
+                }
                 self.macro_stack.insert(
                     nested_instructions.to_owned().name,
                     nested_instructions.to_owned().instructions
