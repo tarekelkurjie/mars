@@ -146,7 +146,7 @@ struct Lexer {
     raw_data: Peekable<IntoIter<char>>,
 }
 
-const RESERVED_KEYWORDS: [&str; 17] = [
+const RESERVED_KEYWORDS: [&str; 19] = [
     "print",
     "print_ascii",
     "pop",
@@ -155,12 +155,14 @@ const RESERVED_KEYWORDS: [&str; 17] = [
     "dup",
     "do",
     "end",
+    "def",
     "if",
     "else",
     "while",
     "spawn",
     "switch",
     "stacks",
+    "stack_rev",
     "stack_size",
     "close",
     "macro"
