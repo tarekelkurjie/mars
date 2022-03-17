@@ -4,32 +4,48 @@ pub mod program {
 
     pub struct Program<'a> {
         pub instructions: &'a Vec<Option<Instruction>>,
-        pub stack: Vec<u8>,
+        pub stack: Vec<DataTypes>,
         pub current_stack: String,
         pub data_stack: &'a mut HashMap<String, u8>,
         pub macro_stack: &'a mut HashMap<String, Vec<Option<Instruction>>>,
-        pub stack_stack: &'a mut HashMap<String, Vec<u8>>,
+        pub stack_stack: &'a mut HashMap<String, Vec<DataTypes>>,
     }
 
     impl<'a> Program<'a> {
         fn evaluate_instruction(&mut self, instruction: &Instruction) {
             match &instruction.Instruction {
                 Instructions::PUSH => {
-                    self.stack.push(instruction.Contents.expect("ERROR: No data found to push to stack"));
+                    self.stack.push(DataTypes::INT(instruction.Contents.expect("ERROR: No data found to push to stack")));
                 },
                 Instructions::PRINT => {
-                    println!("{:?}", self.stack.pop().expect("Cannot pop value from empty stack"));
+                    println!("{:?}", match self.stack.pop().expect("Cannot pop value from empty stack") {
+                        DataTypes::INT(u) => u,
+                        _ => {report_err("Cannot print non-numeric values"); std::process::exit(1);}
+                    });
                 },
                 Instructions::PRINTASCII => {
-                    print!("{}", self.stack.pop().expect("Cannot pop value from empty stack") as char);
+                    print!("{}", match self.stack.pop().expect("Cannot pop value from empty stack") {
+                        DataTypes::INT(u) => u as char,
+                        _ => {
+                            report_err("Cannot print non-numeric values as ASCII");
+                            std::process::exit(1);
+                        }
+                    });
                 }
                 Instructions::POP => {
                     self.stack.pop();
                 },
                 Instructions::DUP => {
-                    let val = self.stack.pop().expect("ERROR: No data on stack to duplicate");
-                    self.stack.push(val);
-                    self.stack.push(val);
+                    match self.stack.pop().expect("ERROR: No data on stack to duplicate") {
+                        DataTypes::INT(u) => {
+                            self.stack.push(DataTypes::INT(u));
+                            self.stack.push(DataTypes::INT(u));
+                        },
+                        DataTypes::STACKPOINTER(p) => {
+                            self.stack.push(DataTypes::STACKPOINTER(p));
+                            self.stack.push(DataTypes::STACKPOINTER(p));
+                        }
+                    }
                 },
                 Instructions::SWAP => {
                     let first_val = self.stack.pop().expect("Insufficient data on the stack");
@@ -38,62 +54,104 @@ pub mod program {
                     self.stack.push(second_val);
                 },
                 Instructions::ADD => {
-                    let first_val = self.stack.pop().expect("Insufficient data on the stack");
-                    let second_val = self.stack.pop().expect("Insufficient data on the stack");
-                    self.stack.push(first_val + second_val);
+                    let first_val = match self.stack.pop().expect("Insufficient data on the stack") {
+                      DataTypes::INT(u) => u,
+                      _ => {report_err("Cannot perform arithmetic operations on non-numeric values"); std::process::exit(1);}
+                    };
+                    let second_val = match self.stack.pop().expect("Insufficient data on the stack") {
+                        DataTypes::INT(u) => u,
+                        _ => {report_err("Cannot perform arithmetic operations on non-numeric values"); std::process::exit(1);}
+                    };
+                    self.stack.push(DataTypes::INT(second_val + first_val));
                 },
                 Instructions::SUB => {
-                    let first_val = self.stack.pop().expect("Insufficient data on the stack");
-                    let second_val = self.stack.pop().expect("Insufficient data on the stack");
-                    self.stack.push(second_val - first_val);
+                    let first_val = match self.stack.pop().expect("Insufficient data on the stack") {
+                        DataTypes::INT(u) => u,
+                        _ => {report_err("Cannot perform arithmetic operations on non-numeric values"); std::process::exit(1);}
+                    };
+                    let second_val = match self.stack.pop().expect("Insufficient data on the stack") {
+                        DataTypes::INT(u) => u,
+                        _ => {report_err("Cannot perform arithmetic operations on non-numeric values"); std::process::exit(1);}
+                    };
+                    self.stack.push(DataTypes::INT(second_val - first_val));
                 },
                 Instructions::MULT => {
-                    let first_val = self.stack.pop().expect("Insufficient data on the stack");
-                    let second_val = self.stack.pop().expect("Insufficient data on the stack");
-                    self.stack.push(first_val * second_val);
+                    let first_val = match self.stack.pop().expect("Insufficient data on the stack") {
+                        DataTypes::INT(u) => u,
+                        _ => {report_err("Cannot perform arithmetic operations on non-numeric values"); std::process::exit(1);}
+                    };
+                    let second_val = match self.stack.pop().expect("Insufficient data on the stack") {
+                        DataTypes::INT(u) => u,
+                        _ => {report_err("Cannot perform arithmetic operations on non-numeric values"); std::process::exit(1);}
+                    };
+                    self.stack.push(DataTypes::INT(second_val * first_val));
                 },
                 Instructions::DIV => {
-                    let first_val = self.stack.pop().expect("Insufficient data on the stack");
-                    let second_val = self.stack.pop().expect("Insufficient data on the stack");
-                    self.stack.push(second_val / first_val);
+                    let first_val = match self.stack.pop().expect("Insufficient data on the stack") {
+                        DataTypes::INT(u) => u,
+                        _ => {report_err("Cannot perform arithmetic operations on non-numeric values"); std::process::exit(1);}
+                    };
+                    let second_val = match self.stack.pop().expect("Insufficient data on the stack") {
+                        DataTypes::INT(u) => u,
+                        _ => {report_err("Cannot perform arithmetic operations on non-numeric values"); std::process::exit(1);}
+                    };
+                    self.stack.push(DataTypes::INT(second_val / first_val));
                 },
                 Instructions::EQ => {
-                    let first_val = self.stack.pop().expect("Insufficient data on the stack");
-                    let second_val = self.stack.pop().expect("Insufficient data on the stack");
-                    if first_val == second_val {
-                        self.stack.push(1);
+                    let first_val = match self.stack.pop().expect("Insufficient data on the stack") {
+                        DataTypes::INT(u) => u,
+                        _ => {report_err("Cannot perform arithmetic operations on non-numeric values"); std::process::exit(1);}
+                    };
+                    let second_val = match self.stack.pop().expect("Insufficient data on the stack") {
+                        DataTypes::INT(u) => u,
+                        _ => {report_err("Cannot perform arithmetic operations on non-numeric values"); std::process::exit(1);}
+                    };
+                    if second_val == first_val {
+                        self.stack.push(DataTypes::INT(1));
                     } else {
-                        self.stack.push(0);
+                        self.stack.push(DataTypes::INT(0));
                     }
                 },
                 Instructions::LT => {
-                    let first_val =  self.stack.pop().expect("Insufficient data on the stack");
-                    let second_val = self.stack.pop().expect("Insufficient data on the stack");
+                    let first_val = match self.stack.pop().expect("Insufficient data on the stack") {
+                        DataTypes::INT(u) => u,
+                        _ => {report_err("Cannot perform arithmetic operations on non-numeric values"); std::process::exit(1);}
+                    };
+                    let second_val = match self.stack.pop().expect("Insufficient data on the stack") {
+                        DataTypes::INT(u) => u,
+                        _ => {report_err("Cannot perform arithmetic operations on non-numeric values"); std::process::exit(1);}
+                    };
                     if second_val < first_val {
-                        self.stack.push(1);
+                        self.stack.push(DataTypes::INT(1));
                     } else {
-                        self.stack.push(0);
+                        self.stack.push(DataTypes::INT(0));
                     }
                 },
                 Instructions::GT => {
-                    let first_val = self.stack.pop().expect("Insufficient data on the stack");
-                    let second_val = self.stack.pop().expect("Insufficient data on the stack");
+                    let first_val = match self.stack.pop().expect("Insufficient data on the stack") {
+                        DataTypes::INT(u) => u,
+                        _ => {report_err("Cannot perform arithmetic operations on non-numeric values"); std::process::exit(1);}
+                    };
+                    let second_val = match self.stack.pop().expect("Insufficient data on the stack") {
+                        DataTypes::INT(u) => u,
+                        _ => {report_err("Cannot perform arithmetic operations on non-numeric values"); std::process::exit(1);}
+                    };
                     if second_val > first_val {
-                        self.stack.push(1);
+                        self.stack.push(DataTypes::INT(1));
                     } else {
-                        self.stack.push(0);
+                        self.stack.push(DataTypes::INT(0));
                     }
                 }
                 Instructions::If(nested_struct) => {
                     match self.stack.pop().expect("No binary condition found") {
-                        1 => {
+                        DataTypes::INT(1) => {
                             for i in nested_struct.If.as_ref().unwrap() {
                                 if let Some(j) = i {
                                     self.evaluate_instruction(&j);
                                 }
                             }
                         },
-                        0 => {
+                        DataTypes::INT(0) => {
                             if let Some(instr) = nested_struct.Else.as_ref() {
                                 if instr.len() > 0 {
                                     for i in instr {
@@ -115,7 +173,7 @@ pub mod program {
                             self.evaluate_instruction(&i);
                         }
                     }
-                    while self.stack.pop().expect("No value found on stack") == 1 {
+                    while self.stack.pop().expect("No value found on stack") == DataTypes::INT(1) {
                         for instr in &nested_struct.Contents {
                             if let Some(i) = instr {
                                 self.evaluate_instruction(&i);
@@ -129,18 +187,20 @@ pub mod program {
                     }
                 },
                 Instructions::VARDECLARE(nested_struct) => {
-
                     for instr in &nested_struct.instructions {
                         self.evaluate_instruction(&instr.as_ref().unwrap());
                     }
                     self.data_stack.insert(
                         nested_struct.name.to_string(),
-                        self.stack.pop().unwrap()
+                        match self.stack.pop().unwrap() {
+                            DataTypes::INT(u) => u,
+                            _ => { report_err("Cannot assign variables with non-numeric types"); std::process::exit(1); }
+                        }
                     );
                 },
                 Instructions::IDENTIFIER(data_name) => {
                     if let Some(data) = self.data_stack.get(data_name) {
-                        self.stack.push(*data);
+                        self.stack.push(DataTypes::INT(*data));
                     } else {
                         let mut value: &Vec<Option<Instruction>> = &Vec::new();
                         if let Some(val) = self.macro_stack.get(data_name) {
@@ -163,10 +223,11 @@ pub mod program {
                         name.to_string(),
                         Vec::new()
                     );
+                    self.stack.push(DataTypes::STACKPOINTER(self.stack_stack.get("name").unwrap() as *const Vec<DataTypes>))
                 },
                 Instructions::SWITCH(name) => {
-                    let tmp_stack: Vec <u8>;
-                    self.stack = match self.stack_stack.get(name) {
+                    let tmp_stack: Vec <DataTypes>;
+                    self.stack = match self.stack_stack.get {
                         Some(vec) => {
                             tmp_stack = vec.to_vec();
                             self.stack_stack.insert(
@@ -197,7 +258,7 @@ pub mod program {
                     for k in self.stack_stack.keys() {println!("  {}", k)};
                 },
                 Instructions::STACKSIZE => {
-                    self.stack.push(self.stack.len() as u8);
+                    self.stack.push(DataTypes::INT(self.stack.len() as u8));
                 },
                 Instructions::STACKREV => {
                     self.stack.reverse();

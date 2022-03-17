@@ -62,6 +62,12 @@ pub mod globals {
         MACRO(Macro)
     }
 
+    #[derive(Debug, Clone, PartialEq)]
+    pub enum DataTypes {
+        INT(u8),
+        STACKPOINTER(*const Vec<DataTypes>)
+    }
+
     #[derive(Debug, PartialEq)]
      pub struct Operation {
         pub OpCode: OpCodes,
@@ -155,4 +161,9 @@ pub mod globals {
         "close",
         "macro"
     ];
+
+    pub fn report_err(message: &str) {
+        eprintln!("ERROR: {}", message);
+        std::process::exit(1);
+    }
 }
