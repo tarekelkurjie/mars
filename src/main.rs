@@ -41,12 +41,14 @@ fn main() {
 
     let mut program = Program {
         instructions: &instructions,
-        stack: Vec::new(),
-        current_stack: "main".to_string(),
+        stack: &mut Vec::new(),
+        current_stack: None,
         data_stack: &mut HashMap::new(),
         macro_stack: &mut HashMap::new(),
-        stack_stack: &mut HashMap::new()
+        stack_stack: &mut HashMap::new(),
     };
+
+    program.current_stack = Some(program.stack as *mut Vec<DataTypes>);
 
     program.simulate();
     // println!("{:?}", instructions);

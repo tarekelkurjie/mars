@@ -150,8 +150,10 @@ pub mod parser {
                 },
                 OpCodes::IDENTIFIER(name) => Some(Instruction::new(Instructions::IDENTIFIER(name), None)),
                 OpCodes::SPAWN(name) => Some(Instruction::new(Instructions::SPAWN(name), None)),
-                OpCodes::SWITCH(name) => Some(Instruction::new(Instructions::SWITCH(name), None)),
-                OpCodes::CLOSE(name) => Some(Instruction::new(Instructions::CLOSE(name), None)),
+                OpCodes::SWITCH => Some(Instruction::new(Instructions::SWITCH, None)),
+                OpCodes::CLOSE => Some(Instruction::new(Instructions::CLOSE, None)),
+                OpCodes::STACK(name) => Some(Instruction::new(Instructions::STACK(name), None)),
+                OpCodes::THIS => Some(Instruction::new(Instructions::THIS, None)),
                 OpCodes::STACKS => Some(Instruction::new(Instructions::STACKS, None)),
                 OpCodes::STACKSIZE => Some(Instruction::new(Instructions::STACKSIZE, None)),
                 OpCodes::STRING(contents) => {

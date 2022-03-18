@@ -1,13 +1,7 @@
-macro print_str
-    stack_rev
-    @counter 0 def
-    @size stack_size def
-    while counter size < do
-        print_ascii
-        @counter counter 1 + def
-    end
-end
+spawn stack_one
+spawn stack_two
 
-"Hello, World!\n"
-switch Hello_World_
-print_str
+close
+close
+
+stacks

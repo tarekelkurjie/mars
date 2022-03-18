@@ -24,8 +24,10 @@ pub mod globals {
         DEFINE,
         IDENTIFIER(String), // Identifier
         SPAWN(String), // Begin spawnable stacks
-        SWITCH(String),
-        CLOSE(String),
+        SWITCH,
+        CLOSE,
+        STACK(String),
+        THIS,
         STACKS,
         STACKSIZE,
         STACKREV,
@@ -53,13 +55,21 @@ pub mod globals {
         If(IfElse),
         While(While),
         SPAWN(String),
-        SWITCH(String),
-        CLOSE(String),
+        SWITCH,
+        CLOSE,
+        STACK(String),
+        THIS,
         STACKS,
         STACKSIZE,
         STACKREV,
         STRING(Vec<Option<Instruction>>),
         MACRO(Macro)
+    }
+
+    #[derive(Debug, Clone, PartialEq)]
+    pub enum DataTypes {
+        INT(u8),
+        STACKPOINTER(*mut Vec<DataTypes>),
     }
 
     #[derive(Debug, PartialEq)]
@@ -134,7 +144,7 @@ pub mod globals {
         pub instructions: Vec<Option<Instruction>>
     }
 
-    pub const RESERVED_KEYWORDS: [&str; 19] = [
+    pub const RESERVED_KEYWORDS: [&str; 21] = [
         "print",
         "print_ascii",
         "pop",
@@ -149,10 +159,17 @@ pub mod globals {
         "while",
         "spawn",
         "switch",
+        "stack",
+        "this",
         "stacks",
         "stack_rev",
         "stack_size",
         "close",
         "macro"
     ];
+
+    pub fn report_err(message: &str) {
+        eprintln!("ERROR: {}", message);
+        std::process::exit(1);
+    }
 }
