@@ -1,8 +1,10 @@
 pub mod globals {
+    use colored::*;
+
     #[derive(PartialEq)]
     #[derive(Debug)]
     pub enum OpCodes {
-        PUSH, // Begin stack manipulation
+        PUSH(u8), // Begin stack manipulation
         POP,
         PRINT,
         PRINTASCII,
@@ -37,7 +39,7 @@ pub mod globals {
 
     #[derive(Debug, Clone)]
     pub enum Instructions {
-        PUSH,
+        PUSH(u8),
         POP,
         PRINT,
         PRINTASCII,
@@ -75,14 +77,14 @@ pub mod globals {
     #[derive(Debug, PartialEq)]
      pub struct Operation {
         pub OpCode: OpCodes,
-        pub Contents: Option<u8>
+        pub line_num: u8
     }
 
      impl Operation {
-        pub fn new(opcode: OpCodes, contents: Option<u8>) -> Self {
+        pub fn new(opcode: OpCodes, line_num: u8) -> Self {
             Operation {
                 OpCode: opcode,
-                Contents: contents
+                line_num: line_num
             }
         }
     }
@@ -90,14 +92,14 @@ pub mod globals {
     #[derive(Debug, Clone)]
     pub struct Instruction {
         pub Instruction: Instructions,
-        pub Contents: Option<u8>
+        pub line_num: u8
     }
 
     impl Instruction {
-        pub fn new(instr: Instructions, contents: Option<u8>) -> Self {
+        pub fn new(instr: Instructions, line_num: u8) -> Self {
             Instruction {
                 Instruction: instr,
-                Contents: contents
+                line_num: line_num
             }
         }
     }
@@ -168,8 +170,8 @@ pub mod globals {
         "macro"
     ];
 
-    pub fn report_err(message: &str) {
-        eprintln!("ERROR: {}", message);
+    pub fn report_err(message: &str, file: &str, line_num: u8) -> ! {
+        eprintln!("{}:{} {}: {}", file, line_num, format!("ERROR").red(), message);
         std::process::exit(1);
     }
 }

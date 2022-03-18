@@ -1,7 +1,6 @@
-spawn stack_one
-spawn stack_two
+macro do_err
+    123
+    switch
+end
 
-close
-close
-
-stacks
+do_err

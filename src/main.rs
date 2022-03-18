@@ -1,4 +1,5 @@
 #![allow(non_snake_case)]
+#![allow(unreachable_patterns)]
 
 mod globals;
 mod lex;
@@ -31,7 +32,7 @@ fn main() {
 
     // println!("{:?}", operations);
 
-    let parse = Parser::new(operations.into_iter());
+    let parse = Parser::new(operations.into_iter(), args[0].to_string());
 
     let mut instructions = Vec::new();
 
@@ -46,6 +47,7 @@ fn main() {
         data_stack: &mut HashMap::new(),
         macro_stack: &mut HashMap::new(),
         stack_stack: &mut HashMap::new(),
+        file: args[1].to_string()
     };
 
     program.current_stack = Some(program.stack as *mut Vec<DataTypes>);

@@ -8,12 +8,14 @@ pub mod lex {
     #[derive(Debug)]
     pub struct Lexer {
         raw_data: Peekable<IntoIter<char>>,
+        line_num: u8
     }
 
     impl Lexer {
         pub fn from_text(text: &str) -> Self {
             Lexer {
                 raw_data: text.chars().collect::<Vec<_>>().into_iter().peekable(),
+                line_num: 0
             }
         }
 
@@ -25,7 +27,7 @@ pub mod lex {
             let mut res = raw_token;
             loop {
                 match self.raw_data.peek() {
-                    Some(c) if cond(*c) => {
+                    Some(c) if cond(*c) && *c != '\n' => {
                         res.push(*c);
                         self.raw_data.next();
                     }
@@ -55,7 +57,7 @@ pub mod lex {
 
             loop {
                 match self.raw_data.next() {
-                    Some(c) if c.is_whitespace() => continue,
+                    Some(c) if c.is_whitespace() && c != '\n' => continue,
                     Some(c) => {
                         first_char = c;
                     }
@@ -71,11 +73,13 @@ pub mod lex {
                                 }
                             }
                         }
+                    } else if first_char == '\n' {
+                        self.line_num += 1;
                     } else if first_char == '@' { // Variable declaration
                         let token: String = self.raw_data.next().expect("ERROR: No character found").to_string();
                         let name = self.get_next_char_while(token, |c| Self::is_alphanumeric(c));
 
-                        return Some(Operation::new(OpCodes::VARDECLARE(name.to_string()), None));
+                        return Some(Operation::new(OpCodes::VARDECLARE(name.to_string()), self.line_num));
                     } else if first_char == '"' { // String literal
                         let mut res: String = self.raw_data.next().expect("ERROR: Unexpected character \"").to_string();
                         while self.raw_data.peek() != Some(&'"') {
@@ -104,75 +108,72 @@ pub mod lex {
                         }
 
                         let mut instr: Vec<Option<Operation>> = Vec::new();
-                        instr.push(Some(Operation::new(OpCodes::SPAWN(name.clone()), None)));
-                        instr.push(Some(Operation::new(OpCodes::DUP, None)));
-                        instr.push(Some(Operation::new(OpCodes::SWITCH, None)));
+                        instr.push(Some(Operation::new(OpCodes::SPAWN(name.clone()), self.line_num)));
+                        instr.push(Some(Operation::new(OpCodes::DUP, self.line_num)));
+                        instr.push(Some(Operation::new(OpCodes::SWITCH, self.line_num)));
                         for char in res.chars() {
-                            instr.push(Some(Operation::new(OpCodes::PUSH, Some(char as u8))))
+                            instr.push(Some(Operation::new(OpCodes::PUSH(char as u8), self.line_num)))
                         }
-                        instr.push(Some(Operation::new(OpCodes::STACK("main".to_string()), None)));
-                        instr.push(Some(Operation::new(OpCodes::SWITCH, None)));
-                        instr.push(Some(Operation::new(OpCodes::STACK(name.clone()), None)));
-                        return Some(Operation::new(OpCodes::STRING(instr), None));
+                        instr.push(Some(Operation::new(OpCodes::STACK("main".to_string()), self.line_num)));
+                        instr.push(Some(Operation::new(OpCodes::SWITCH, self.line_num)));
+                        instr.push(Some(Operation::new(OpCodes::STACK(name.clone()), self.line_num)));
+                        return Some(Operation::new(OpCodes::STRING(instr), self.line_num));
                     } else {
                         let token: String = first_char.to_string();
                         let identifier = self.get_next_char_while(token, |c| Self::is_alphanumeric(c));
                         match identifier.as_str() {
-                            "dup" => return Some(Operation::new(OpCodes::DUP, None)),
-                            "swap" => return Some(Operation::new(OpCodes::SWAP, None)),
-                            "pop" => return Some(Operation::new(OpCodes::POP, None)),
-                            "if" => return Some(Operation::new(OpCodes::IF, None)),
-                            "else" => return Some(Operation::new(OpCodes::ELSE, None)),
-                            "while" => return Some(Operation::new(OpCodes::WHILE, None)),
-                            "end" => return Some(Operation::new(OpCodes::END, None)),
-                            "do" => return Some(Operation::new(OpCodes::DO, None)),
-                            "+" => return Some(Operation::new(OpCodes::ADD, None)),
-                            "-" => return Some(Operation::new(OpCodes::SUB, None)),
-                            "print" => return Some(Operation::new(OpCodes::PRINT, None)),
-                            "print_ascii" => return Some(Operation::new(OpCodes::PRINTASCII, None)),
-                            "=" => return Some(Operation::new(OpCodes::EQ, None)),
-                            "<" => return Some(Operation::new(OpCodes::LT, None)),
-                            ">" => return Some(Operation::new(OpCodes::GT, None)),
-                            "*" => return Some(Operation::new(OpCodes::MULT, None)),
-                            "/" => return Some(Operation::new(OpCodes::DIV, None)),
-                            "def" => return Some(Operation::new(OpCodes::DEFINE, None)),
+                            "dup" => return Some(Operation::new(OpCodes::DUP, self.line_num)),
+                            "swap" => return Some(Operation::new(OpCodes::SWAP, self.line_num)),
+                            "pop" => return Some(Operation::new(OpCodes::POP, self.line_num)),
+                            "if" => return Some(Operation::new(OpCodes::IF, self.line_num)),
+                            "else" => return Some(Operation::new(OpCodes::ELSE, self.line_num)),
+                            "while" => return Some(Operation::new(OpCodes::WHILE, self.line_num)),
+                            "end" => return Some(Operation::new(OpCodes::END, self.line_num)),
+                            "do" => return Some(Operation::new(OpCodes::DO, self.line_num)),
+                            "+" => return Some(Operation::new(OpCodes::ADD, self.line_num)),
+                            "-" => return Some(Operation::new(OpCodes::SUB, self.line_num)),
+                            "print" => return Some(Operation::new(OpCodes::PRINT, self.line_num)),
+                            "print_ascii" => return Some(Operation::new(OpCodes::PRINTASCII, self.line_num)),
+                            "=" => return Some(Operation::new(OpCodes::EQ, self.line_num)),
+                            "<" => return Some(Operation::new(OpCodes::LT, self.line_num)),
+                            ">" => return Some(Operation::new(OpCodes::GT, self.line_num)),
+                            "*" => return Some(Operation::new(OpCodes::MULT, self.line_num)),
+                            "/" => return Some(Operation::new(OpCodes::DIV, self.line_num)),
+                            "def" => return Some(Operation::new(OpCodes::DEFINE, self.line_num)),
                             "spawn" => {
                                 self.raw_data.next();
                                 let token: String = self.raw_data.next().expect("ERROR: No character found").to_string();
                                 let name = self.get_next_char_while(token, |c| Self::is_alphanumeric(c));
 
-                                return Some(Operation::new(OpCodes::SPAWN(name.to_string()), None));
+                                return Some(Operation::new(OpCodes::SPAWN(name.to_string()), self.line_num));
                             },
-                            "switch" => return Some(Operation::new(OpCodes::SWITCH, None)),
-                            "close" => return Some(Operation::new(OpCodes::CLOSE, None)),
+                            "switch" => return Some(Operation::new(OpCodes::SWITCH, self.line_num)),
+                            "close" => return Some(Operation::new(OpCodes::CLOSE, self.line_num)),
                             "stack" => {
                                 self.raw_data.next();
                                 let token: String = self.raw_data.next().expect("ERROR: No character found").to_string();
                                 let name = self.get_next_char_while(token, |c| Self::is_alphanumeric(c));
 
-                                return Some(Operation::new(OpCodes::STACK(name), None));
+                                return Some(Operation::new(OpCodes::STACK(name), self.line_num));
                             },
-                            "this" => return Some(Operation::new(OpCodes::THIS, None)),
-                            "stacks" => return Some(Operation::new(OpCodes::STACKS, None)),
-                            "stack_size" => return Some(Operation::new(OpCodes::STACKSIZE, None)),
-                            "stack_rev" => return Some(Operation::new(OpCodes::STACKREV, None)),
+                            "this" => return Some(Operation::new(OpCodes::THIS, self.line_num)),
+                            "stacks" => return Some(Operation::new(OpCodes::STACKS, self.line_num)),
+                            "stack_size" => return Some(Operation::new(OpCodes::STACKSIZE, self.line_num)),
+                            "stack_rev" => return Some(Operation::new(OpCodes::STACKREV, self.line_num)),
                             "macro" => {
                                 self.raw_data.next();
                                 let token: String = self.raw_data.next().expect("ERROR: No character found").to_string();
                                 let name = self.get_next_char_while(token, |c| Self::is_alphanumeric(c));
 
-                                return Some(Operation::new(OpCodes::MACRO(name), None));
+                                return Some(Operation::new(OpCodes::MACRO(name), self.line_num));
                             }
-                            _ => return Some(Operation::new(OpCodes::IDENTIFIER(identifier.trim().to_string()), None))
+                            _ => return Some(Operation::new(OpCodes::IDENTIFIER(identifier.trim().to_string()), self.line_num))
                         }
                     }
                 }
 
                 else if first_char.is_numeric() {
-                    return Some(Operation::new(OpCodes::PUSH,
-                                               Some(self.get_numeric(first_char)
-                                                   .parse::<u8>()
-                                                   .unwrap())))
+                    return Some(Operation::new(OpCodes::PUSH(self.get_numeric(first_char).parse::<u8>().unwrap()), self.line_num));
                 }
             }
         }
