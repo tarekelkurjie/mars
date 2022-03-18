@@ -105,10 +105,14 @@ pub mod lex {
 
                         let mut instr: Vec<Option<Operation>> = Vec::new();
                         instr.push(Some(Operation::new(OpCodes::SPAWN(name.clone()), None)));
-                        instr.push(Some(Operation::new(OpCodes::SWITCH(name.clone()), None)));
+                        instr.push(Some(Operation::new(OpCodes::DUP, None)));
+                        instr.push(Some(Operation::new(OpCodes::SWITCH, None)));
                         for char in res.chars() {
                             instr.push(Some(Operation::new(OpCodes::PUSH, Some(char as u8))))
                         }
+                        instr.push(Some(Operation::new(OpCodes::STACK("main".to_string()), None)));
+                        instr.push(Some(Operation::new(OpCodes::SWITCH, None)));
+                        instr.push(Some(Operation::new(OpCodes::STACK(name.clone()), None)));
                         return Some(Operation::new(OpCodes::STRING(instr), None));
                     } else {
                         let token: String = first_char.to_string();
@@ -139,20 +143,16 @@ pub mod lex {
 
                                 return Some(Operation::new(OpCodes::SPAWN(name.to_string()), None));
                             },
-                            "switch" => {
+                            "switch" => return Some(Operation::new(OpCodes::SWITCH, None)),
+                            "close" => return Some(Operation::new(OpCodes::CLOSE, None)),
+                            "stack" => {
                                 self.raw_data.next();
                                 let token: String = self.raw_data.next().expect("ERROR: No character found").to_string();
                                 let name = self.get_next_char_while(token, |c| Self::is_alphanumeric(c));
 
-                                return Some(Operation::new(OpCodes::SWITCH(name.to_string()), None));
+                                return Some(Operation::new(OpCodes::STACK(name), None));
                             },
-                            "close" => {
-                                self.raw_data.next();
-                                let token: String = self.raw_data.next().expect("ERROR: No character found").to_string();
-                                let name = self.get_next_char_while(token, |c| Self::is_alphanumeric(c));
-
-                                return Some(Operation::new(OpCodes::CLOSE(name.to_string()), None));
-                            },
+                            "this" => return Some(Operation::new(OpCodes::THIS, None)),
                             "stacks" => return Some(Operation::new(OpCodes::STACKS, None)),
                             "stack_size" => return Some(Operation::new(OpCodes::STACKSIZE, None)),
                             "stack_rev" => return Some(Operation::new(OpCodes::STACKREV, None)),

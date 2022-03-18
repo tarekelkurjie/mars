@@ -1,1 +1,7 @@
-1 2 print print
+spawn stack_one
+spawn stack_two
+
+close
+close
+
+stacks
