@@ -190,7 +190,8 @@ pub mod lex {
                                 }
 
                                 return Some(Operation::new(OpCodes::IMPORT(res, value), self.line_num));
-                            }
+                            },
+                            "exit" => return Some(Operation::new(OpCodes::EXIT, self.line_num)),
                             _ => return Some(Operation::new(OpCodes::IDENTIFIER(identifier.trim().to_string()), self.line_num))
                         }
                     }

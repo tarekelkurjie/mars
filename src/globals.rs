@@ -35,7 +35,8 @@ pub mod globals {
         STACKREV,
         STRING(Vec<Option<Operation>>), // String literal
         MACRO(String),
-        IMPORT(Vec<Option<Operation>>, String)
+        IMPORT(Vec<Option<Operation>>, String),
+        EXIT
     }
 
     #[derive(Debug, Clone)]
@@ -67,7 +68,8 @@ pub mod globals {
         STACKREV,
         STRING(Vec<Option<Instruction>>),
         MACRO(Macro),
-        IMPORT(Vec<Option<Instruction>>)
+        IMPORT(Vec<Option<Instruction>>),
+        EXIT
     }
 
     #[derive(Debug, Clone, PartialEq)]

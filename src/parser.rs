@@ -116,9 +116,9 @@ pub mod parser {
                     )
 
                 },
-                OpCodes::END => report_err("ERROR: 'end' statement found without matching block", self.file.as_str(), op.line_num),
-                OpCodes::ELSE => report_err("ERROR: 'else' statement found without match 'if'", self.file.as_str(), op.line_num),
-                OpCodes::DO => report_err("ERROR: 'do' statement found without matching block", self.file.as_str(), op.line_num),
+                OpCodes::END => report_err("'end' statement found without matching block", self.file.as_str(), op.line_num),
+                OpCodes::ELSE => report_err("'else' statement found without match 'if'", self.file.as_str(), op.line_num),
+                OpCodes::DO => report_err("'do' statement found without matching block", self.file.as_str(), op.line_num),
                 OpCodes::VARDECLARE(name) => {
                     let mut instr: Vec<Option<Instruction>> = Vec::new();
 
@@ -128,7 +128,7 @@ pub mod parser {
                                 instr.push(self.gen_instruction_from_op(j));
                             } else {
                                 if RESERVED_KEYWORDS.contains(&name.as_str()) {
-                                    report_err(format!("ERROR: Cannot assign variable with name of assigned keyword ({})", name).as_str(), self.file.as_str(), op.line_num);
+                                    report_err(format!("Cannot assign variable with name of assigned keyword ({})", name).as_str(), self.file.as_str(), op.line_num);
                                 }
                                 return Some(Instruction::new(Instructions::VARDECLARE(VariableDefine {name: name.to_string(), instructions: instr}), op.line_num));
                             }
@@ -136,7 +136,7 @@ pub mod parser {
                     }
                     return Some(Instruction::new(Instructions::VARDECLARE(VariableDefine {name: name.to_string(), instructions: instr}), op.line_num));
                 },
-                OpCodes::DEFINE => report_err("ERROR: 'def' statement found without matching variable declaration", self.file.as_str(), op.line_num),
+                OpCodes::DEFINE => report_err("'def' statement found without matching variable declaration", self.file.as_str(), op.line_num),
                 OpCodes::IDENTIFIER(name) => Some(Instruction::new(Instructions::IDENTIFIER(name), op.line_num)),
                 OpCodes::SPAWN(name) => Some(Instruction::new(Instructions::SPAWN(name), op.line_num)),
                 OpCodes::SWITCH => Some(Instruction::new(Instructions::SWITCH, op.line_num)),
@@ -182,7 +182,8 @@ pub mod parser {
                     }
 
                     Some(Instruction::new(Instructions::IMPORT(instrs), op.line_num))
-                }
+                },
+                OpCodes::EXIT => Some(Instruction::new(Instructions::EXIT, op.line_num))
             }
         }
     }

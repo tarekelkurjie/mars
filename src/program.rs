@@ -14,6 +14,7 @@ pub mod program {
 
     impl<'a> Program<'a> {
         fn evaluate_instruction(&mut self, instruction: &Instruction) {
+            println!("{:?}, {:?}", instruction, self.stack);
             match &instruction.Instruction {
                 Instructions::PUSH(val) => {
                     self.stack.push(DataTypes::INT(val.clone()));
@@ -194,7 +195,7 @@ pub mod program {
                     }
                     self.data_stack.insert(
                         nested_struct.name.to_string(),
-                        self.stack.pop().unwrap()
+                        self.stack.pop().unwrap_or_else(|| report_err(format!("No data on stack to assign to variable {}", &nested_struct.name).as_str(), self.file.as_str(), instruction.line_num.clone()))
                     );
                 },
                 Instructions::IDENTIFIER(data_name) => {
@@ -260,7 +261,7 @@ pub mod program {
                     }
                 },
                 Instructions::STACK(name) => {
-                  self.stack.push(DataTypes::STACKPOINTER(self.stack_stack.get_mut(name.as_str()).expect("Can't find that bro") as *mut Vec<DataTypes>));
+                  self.stack.push(DataTypes::STACKPOINTER(self.stack_stack.get_mut(name.as_str()).unwrap_or_else(|| report_err(format!("Cannot locate function with name {}", name).as_str(), self.file.as_str(), instruction.line_num.clone())) as *mut Vec<DataTypes>));
                 },
                 Instructions::THIS => {
                   self.stack.push(DataTypes::STACKPOINTER(self.current_stack.unwrap()));
@@ -295,6 +296,12 @@ pub mod program {
                     for instr in nested_instructions {
                         self.evaluate_instruction(&instr.as_ref().unwrap());
                     }
+                },
+                Instructions::EXIT => {
+                    let code = self.stack.pop().unwrap_or_else(|| report_err("No exit code to exit with", self.file.as_str(), instruction.line_num));
+                    if let DataTypes::INT(exit_code) = code {
+                        std::process::exit(exit_code as i32);
+                    } else {report_err("Cannot exit with status as pointer", self.file.as_str(), instruction.line_num);}
                 }
             }
         }
@@ -313,6 +320,7 @@ pub mod program {
                     None => continue
                 }
             }
+
         }
     }
 }

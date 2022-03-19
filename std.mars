@@ -1,3 +1,20 @@
+macro copy_stack
+    switch
+    spawn replacement_stack
+    @this_stack this def
+    @stack_copy dup def
+    while this_stack stack_size 1 > do
+        this_stack switch
+        @current dup def
+        pop
+        stack_copy switch
+    end
+    this_stack switch
+    stack_copy
+end
+
+
+// Prints the string whose pointer is on the top of the stack
 macro puts
     @prev_stack this def
     dup
@@ -12,4 +29,31 @@ macro puts
     prev_stack
     switch
     close
+end
+
+macro eputs
+    switch
+    stack_rev
+    @counter 0 def
+    @size stack_size def
+    while counter size < do
+        print_ascii
+        @counter counter 1 + def
+    end
+    1 exit
+end
+
+// Prints all contents of the stack whose pointer is on the top of the stack WITHOUT modifying the contents of the stack
+macro print_stack
+    @prev_stack this def
+    copy_stack switch
+    @temp_stack stack replacement_stack def
+    @counter 0 def
+    @size stack_size def
+    while counter size < do
+        print
+        @size stack_size def
+    end
+    prev_stack switch
+    temp_stack close
 end

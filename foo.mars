@@ -1,3 +1,9 @@
 using std.mars
 
-"Hello, Mars!" puts
+spawn my_stack
+switch 1 2 3 4 5 stack main switch
+stack my_stack
+
+print_stack
+
+0 exit
