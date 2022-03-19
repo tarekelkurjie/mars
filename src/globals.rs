@@ -34,7 +34,8 @@ pub mod globals {
         STACKSIZE,
         STACKREV,
         STRING(Vec<Option<Operation>>), // String literal
-        MACRO(String)
+        MACRO(String),
+        IMPORT(Vec<Option<Operation>>, String)
     }
 
     #[derive(Debug, Clone)]
@@ -65,7 +66,8 @@ pub mod globals {
         STACKSIZE,
         STACKREV,
         STRING(Vec<Option<Instruction>>),
-        MACRO(Macro)
+        MACRO(Macro),
+        IMPORT(Vec<Option<Instruction>>)
     }
 
     #[derive(Debug, Clone, PartialEq)]

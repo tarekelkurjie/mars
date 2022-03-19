@@ -290,6 +290,11 @@ pub mod program {
                         nested_instructions.to_owned().name,
                         nested_instructions.to_owned().instructions
                     );
+                },
+                Instructions::IMPORT(nested_instructions) => {
+                    for instr in nested_instructions {
+                        self.evaluate_instruction(&instr.as_ref().unwrap());
+                    }
                 }
             }
         }

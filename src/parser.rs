@@ -169,6 +169,19 @@ pub mod parser {
                         }
                     }
                     Some(Instruction::new(Instructions::MACRO( Macro { name: name, instructions: instrs}), op.line_num))
+                },
+                OpCodes::IMPORT(ops, file_path) => {
+                    let parse = Parser {
+                        operations: ops.into_iter(),
+                        file: file_path
+                    };
+
+                    let mut instrs = Vec::new();
+                    for i in parse {
+                        instrs.push(Some(i));
+                    }
+
+                    Some(Instruction::new(Instructions::IMPORT(instrs), op.line_num))
                 }
             }
         }
