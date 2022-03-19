@@ -1,7 +1,6 @@
 macro puts
     @prev_stack this def
     dup
-    swap
     switch
     stack_rev
     @counter 0 def
