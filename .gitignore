@@ -3,7 +3,7 @@
 
 /.idea
 
-./src/foo.mars
+./foo.mars
 foo.mars
 
 *.iml
