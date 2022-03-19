@@ -5,3 +5,5 @@
 
 ./src/foo.mars
 foo.mars
+
+*.iml

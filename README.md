@@ -6,7 +6,7 @@ Syntax heavily inspired by [porth](https://gitlab.com/tsoding/porth)
 ## To-Do
 - [x] Implement all basic programming uses (if/else, loops, variables, etc)
 - [x] Implement string literals
-- [ ] Better error handling
+- [x] Better error handling
 - [ ] Implement import/export system (either simple C-like 'include' or a module system)
 - [ ] Write a compiler
 - [ ] Write a standard library
@@ -114,16 +114,23 @@ my_var print
 
 **Generate a new stack using the "spawn" keyword**
 
-**Switch to that stack using the "switch" keyword**
+*Switching pushes the pointer to the stack onto the current working stack*
 
-**Close the stack using the "close" keyword**
+**Push the pointer to a named stack using the "stack" keyword**
+
+**Push the pointer of the curent stack using the "this" keyword**
+
+**Switch to that stack pointer using the "switch" keyword**
+
+**Close the stack pointer using the "close" keyword**
 ```
 spawn <stack name>
-switch <stack name>
+switch
 
 <operations>
 
-close <stack name>
+stack <stack name>
+close
 ```
 
 **Tools:**
@@ -145,9 +152,7 @@ The name of the stack is the first 3 available words in the string, with undersc
 of whitepsace and one trailing underscore at the end.
 
 ```
-"Hello, World!\n"
-switch Hello_World_
-stack_rev //Since strings are pushed in reverse order, we need to reverse the stack
+"Hello, World!\n" switch
 
 @counter 0 def
 @size stack_size def
@@ -172,7 +177,11 @@ end
 
 For example:
 ```
-macro print_str
+macro puts
+    @prev_stack this def
+    dup
+    swap
+    switch
     stack_rev
     @counter 0 def
     @size stack_size def
@@ -180,9 +189,10 @@ macro print_str
         print_ascii
         @counter counter 1 + def
     end
+    prev_stack
+    switch
+    close
 end
 
-"Hello, World!\n"
-switch Hello_World_
-print_str
+"Hello, World!\n" puts
 ```
