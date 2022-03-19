@@ -1,4 +1,7 @@
-macro print_str
+macro puts
+    @prev_stack this def
+    dup
+    switch
     stack_rev
     @counter 0 def
     @size stack_size def
@@ -6,8 +9,9 @@ macro print_str
         print_ascii
         @counter counter 1 + def
     end
+    prev_stack
+    switch
+    close
 end
 
-"Hello, World!\n"
-switch Hello_World_
-print_str
+"Hello, World!\n" puts
