@@ -17,7 +17,7 @@ pub mod lex {
         pub fn from_text(text: &str, file: String) -> Self {
             Lexer {
                 raw_data: text.chars().collect::<Vec<_>>().into_iter().peekable(),
-                line_num: 0,
+                line_num: 1,
                 file
             }
         }

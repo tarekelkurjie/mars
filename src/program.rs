@@ -14,7 +14,6 @@ pub mod program {
 
     impl<'a> Program<'a> {
         fn evaluate_instruction(&mut self, instruction: &Instruction) {
-            println!("{:?}, {:?}", instruction, self.stack);
             match &instruction.Instruction {
                 Instructions::PUSH(val) => {
                     self.stack.push(DataTypes::INT(val.clone()));
@@ -24,21 +23,21 @@ pub mod program {
                         match v {
                             DataTypes::INT(u) => println!("{:?}", u),
                             DataTypes::STACKPOINTER(p) => println!("{:?}", p),
-                            _ => report_err("Cannot print non-numeric types", self.file.as_str(), instruction.line_num.clone())
+                            _ => report_err("Cannot print non-numeric types", instruction.file_name.as_str(), instruction.line_num.clone())
                         }
                     }
                 },
                 Instructions::PRINTASCII => {
                     print!("{}", match self.stack.pop().expect("Cannot pop value from empty stack") {
                         DataTypes::INT(u) => u as char,
-                        _ => report_err("Cannot print non-numeric values as ASCII", self.file.as_str(), instruction.line_num.clone()),
+                        _ => report_err("Cannot print non-numeric values as ASCII", instruction.file_name.as_str(), instruction.line_num.clone()),
                     });
                 }
                 Instructions::POP => {
                     self.stack.pop();
                 },
                 Instructions::DUP => {
-                    match self.stack.pop().expect("ERROR: No data on stack to duplicate") {
+                    match self.stack.pop().unwrap_or_else(|| report_err("No data on stack to duplicate", instruction.file_name.as_str(), instruction.line_num.clone())) {
                         DataTypes::INT(u) => {
                             self.stack.push(DataTypes::INT(u));
                             self.stack.push(DataTypes::INT(u));
@@ -47,7 +46,7 @@ pub mod program {
                             self.stack.push(DataTypes::STACKPOINTER(p));
                             self.stack.push(DataTypes::STACKPOINTER(p));
                         },
-                        _ => report_err("Cannot duplicate extraneous types", self.file.as_str(), instruction.line_num.clone())
+                        _ => report_err("Cannot duplicate extraneous types", instruction.file_name.as_str(), instruction.line_num.clone())
                     }
                 },
                 Instructions::SWAP => {
@@ -59,55 +58,55 @@ pub mod program {
                 Instructions::ADD => {
                     let first_val = match self.stack.pop().expect("Insufficient data on the stack") {
                       DataTypes::INT(u) => u,
-                      _ => {report_err("Cannot perform arithmetic operations on non-numeric values", self.file.as_str(), instruction.line_num.clone()); }
+                      _ => {report_err("Cannot perform arithmetic operations on non-numeric values", instruction.file_name.as_str(), instruction.line_num.clone()); }
                     };
                     let second_val = match self.stack.pop().expect("Insufficient data on the stack") {
                         DataTypes::INT(u) => u,
-                        _ => {report_err("Cannot perform arithmetic operations on non-numeric values", self.file.as_str(), instruction.line_num.clone()); }
+                        _ => {report_err("Cannot perform arithmetic operations on non-numeric values", instruction.file_name.as_str(), instruction.line_num.clone()); }
                     };
                     self.stack.push(DataTypes::INT(second_val + first_val));
                 },
                 Instructions::SUB => {
                     let first_val = match self.stack.pop().expect("Insufficient data on the stack") {
                         DataTypes::INT(u) => u,
-                        _ => {report_err("Cannot perform arithmetic operations on non-numeric values", self.file.as_str(), instruction.line_num.clone()); }
+                        _ => {report_err("Cannot perform arithmetic operations on non-numeric values", instruction.file_name.as_str(), instruction.line_num.clone()); }
                     };
                     let second_val = match self.stack.pop().expect("Insufficient data on the stack") {
                         DataTypes::INT(u) => u,
-                        _ => {report_err("Cannot perform arithmetic operations on non-numeric values", self.file.as_str(), instruction.line_num.clone()); }
+                        _ => {report_err("Cannot perform arithmetic operations on non-numeric values", instruction.file_name.as_str(), instruction.line_num.clone()); }
                     };
                     self.stack.push(DataTypes::INT(second_val - first_val));
                 },
                 Instructions::MULT => {
                     let first_val = match self.stack.pop().expect("Insufficient data on the stack") {
                         DataTypes::INT(u) => u,
-                        _ => {report_err("Cannot perform arithmetic operations on non-numeric values", self.file.as_str(), instruction.line_num.clone()); }
+                        _ => {report_err("Cannot perform arithmetic operations on non-numeric values", instruction.file_name.as_str(), instruction.line_num.clone()); }
                     };
                     let second_val = match self.stack.pop().expect("Insufficient data on the stack") {
                         DataTypes::INT(u) => u,
-                        _ => {report_err("Cannot perform arithmetic operations on non-numeric values", self.file.as_str(), instruction.line_num.clone()); }
+                        _ => {report_err("Cannot perform arithmetic operations on non-numeric values", instruction.file_name.as_str(), instruction.line_num.clone()); }
                     };
                     self.stack.push(DataTypes::INT(second_val * first_val));
                 },
                 Instructions::DIV => {
                     let first_val = match self.stack.pop().expect("Insufficient data on the stack") {
                         DataTypes::INT(u) => u,
-                        _ => {report_err("Cannot perform arithmetic operations on non-numeric values", self.file.as_str(), instruction.line_num.clone()); }
+                        _ => {report_err("Cannot perform arithmetic operations on non-numeric values", instruction.file_name.as_str(), instruction.line_num.clone()); }
                     };
                     let second_val = match self.stack.pop().expect("Insufficient data on the stack") {
                         DataTypes::INT(u) => u,
-                        _ => {report_err("Cannot perform arithmetic operations on non-numeric values", self.file.as_str(), instruction.line_num.clone()); }
+                        _ => {report_err("Cannot perform arithmetic operations on non-numeric values", instruction.file_name.as_str(), instruction.line_num.clone()); }
                     };
                     self.stack.push(DataTypes::INT(second_val / first_val));
                 },
                 Instructions::EQ => {
                     let first_val = match self.stack.pop().expect("Insufficient data on the stack") {
                         DataTypes::INT(u) => u,
-                        _ => {report_err("Cannot perform arithmetic operations on non-numeric values", self.file.as_str(), instruction.line_num.clone()); }
+                        _ => {report_err("Cannot perform arithmetic operations on non-numeric values", instruction.file_name.as_str(), instruction.line_num.clone()); }
                     };
                     let second_val = match self.stack.pop().expect("Insufficient data on the stack") {
                         DataTypes::INT(u) => u,
-                        _ => {report_err("Cannot perform arithmetic operations on non-numeric values", self.file.as_str(), instruction.line_num.clone()); }
+                        _ => {report_err("Cannot perform arithmetic operations on non-numeric values", instruction.file_name.as_str(), instruction.line_num.clone()); }
                     };
                     if second_val == first_val {
                         self.stack.push(DataTypes::INT(1));
@@ -118,11 +117,11 @@ pub mod program {
                 Instructions::LT => {
                     let first_val = match self.stack.pop().expect("Insufficient data on the stack") {
                         DataTypes::INT(u) => u,
-                        _ => {report_err("Cannot perform comparative operations on non-numeric values", self.file.as_str(), instruction.line_num.clone()); }
+                        _ => {report_err("Cannot perform comparative operations on non-numeric values", instruction.file_name.as_str(), instruction.line_num.clone()); }
                     };
                     let second_val = match self.stack.pop().expect("Insufficient data on the stack") {
                         DataTypes::INT(u) => u,
-                        _ => {report_err("Cannot perform comparative operations on non-numeric values", self.file.as_str(), instruction.line_num.clone()); }
+                        _ => {report_err("Cannot perform comparative operations on non-numeric values", instruction.file_name.as_str(), instruction.line_num.clone()); }
                     };
                     if second_val < first_val {
                         self.stack.push(DataTypes::INT(1));
@@ -133,11 +132,11 @@ pub mod program {
                 Instructions::GT => {
                     let first_val = match self.stack.pop().expect("Insufficient data on the stack") {
                         DataTypes::INT(u) => u,
-                        _ => {report_err("Cannot perform comparative operations on non-numeric values", self.file.as_str(), instruction.line_num.clone()); }
+                        _ => {report_err("Cannot perform comparative operations on non-numeric values", instruction.file_name.as_str(), instruction.line_num.clone()); }
                     };
                     let second_val = match self.stack.pop().expect("Insufficient data on the stack") {
                         DataTypes::INT(u) => u,
-                        _ => {report_err("Cannot perform comparative operations on non-numeric values", self.file.as_str(), instruction.line_num.clone()); }
+                        _ => {report_err("Cannot perform comparative operations on non-numeric values", instruction.file_name.as_str(), instruction.line_num.clone()); }
                     };
                     if second_val > first_val {
                         self.stack.push(DataTypes::INT(1));
@@ -167,7 +166,7 @@ pub mod program {
                                 return;
                             }
                         },
-                        _ => report_err("Binary boolean not found", self.file.as_str(), instruction.line_num.clone())
+                        _ => report_err("Binary boolean not found", instruction.file_name.as_str(), instruction.line_num.clone())
                     }
                 },
                 Instructions::While(nested_struct) => {
@@ -195,7 +194,7 @@ pub mod program {
                     }
                     self.data_stack.insert(
                         nested_struct.name.to_string(),
-                        self.stack.pop().unwrap_or_else(|| report_err(format!("No data on stack to assign to variable {}", &nested_struct.name).as_str(), self.file.as_str(), instruction.line_num.clone()))
+                        self.stack.pop().unwrap_or_else(|| report_err(format!("No data on stack to assign to variable {}", &nested_struct.name).as_str(), instruction.file_name.as_str(), instruction.line_num.clone()))
                     );
                 },
                 Instructions::IDENTIFIER(data_name) => {
@@ -215,7 +214,7 @@ pub mod program {
                     }
                 },
                 Instructions::SPAWN(name) => {
-                    if RESERVED_KEYWORDS.contains(&name.as_str()) { report_err(format!("ERROR: Cannot assign variable with name of assigned keyword ({})", name).as_str(), self.file.as_str(), instruction.line_num.clone()); }
+                    if RESERVED_KEYWORDS.contains(&name.as_str()) { report_err(format!("ERROR: Cannot assign variable with name of assigned keyword ({})", name).as_str(), instruction.file_name.as_str(), instruction.line_num.clone()); }
                     self.stack_stack.insert(
                         name.to_string(),
                         Vec::new()
@@ -231,7 +230,7 @@ pub mod program {
                                     self.current_stack = Some(p);
                                 }
                             },
-                            _ => report_err("Cannot switch to pointer with non-stack type", self.file.as_str(), instruction.line_num.clone()),
+                            _ => report_err("Cannot switch to pointer with non-stack type", instruction.file_name.as_str(), instruction.line_num.clone()),
                         }
                     }
                 },
@@ -245,7 +244,7 @@ pub mod program {
                         if let Some(v) = top.clone() {
                             p2 = match v {
                                 DataTypes::STACKPOINTER(p) => Some(p),
-                                _ => report_err("Cannot swtich to non-pointer type", self.file.as_str(), instruction.line_num.clone()),
+                                _ => report_err("Cannot swtich to non-pointer type", instruction.file_name.as_str(), instruction.line_num.clone()),
                             };
                         }
 
@@ -261,7 +260,7 @@ pub mod program {
                     }
                 },
                 Instructions::STACK(name) => {
-                  self.stack.push(DataTypes::STACKPOINTER(self.stack_stack.get_mut(name.as_str()).unwrap_or_else(|| report_err(format!("Cannot locate function with name {}", name).as_str(), self.file.as_str(), instruction.line_num.clone())) as *mut Vec<DataTypes>));
+                  self.stack.push(DataTypes::STACKPOINTER(self.stack_stack.get_mut(name.as_str()).unwrap_or_else(|| report_err(format!("Cannot locate function with name {}", name).as_str(), instruction.file_name.as_str(), instruction.line_num.clone())) as *mut Vec<DataTypes>));
                 },
                 Instructions::THIS => {
                   self.stack.push(DataTypes::STACKPOINTER(self.current_stack.unwrap()));
@@ -285,7 +284,7 @@ pub mod program {
                 },
                 Instructions::MACRO(nested_instructions) => {
                     if RESERVED_KEYWORDS.contains(&nested_instructions.name.as_str()) {
-                        report_err(format!("ERROR: Cannot assign variable with name of assigned keyword ({})", nested_instructions.name).as_str(), self.file.as_str(), instruction.line_num);
+                        report_err(format!("ERROR: Cannot assign variable with name of assigned keyword ({})", nested_instructions.name).as_str(), instruction.file_name.as_str(), instruction.line_num);
                     }
                     self.macro_stack.insert(
                         nested_instructions.to_owned().name,
@@ -298,10 +297,10 @@ pub mod program {
                     }
                 },
                 Instructions::EXIT => {
-                    let code = self.stack.pop().unwrap_or_else(|| report_err("No exit code to exit with", self.file.as_str(), instruction.line_num));
+                    let code = self.stack.pop().unwrap_or_else(|| report_err("No exit code to exit with", instruction.file_name.as_str(), instruction.line_num));
                     if let DataTypes::INT(exit_code) = code {
                         std::process::exit(exit_code as i32);
-                    } else {report_err("Cannot exit with status as pointer", self.file.as_str(), instruction.line_num);}
+                    } else {report_err("Cannot exit with status as pointer", instruction.file_name.as_str(), instruction.line_num);}
                 }
             }
         }

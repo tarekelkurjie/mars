@@ -17,19 +17,19 @@ pub mod parser {
 
         fn gen_instruction_from_op(&mut self, op: Operation) -> Option<Instruction> {
             match op.OpCode {
-                OpCodes::PUSH(v) => return Some(Instruction::new(Instructions::PUSH(v), op.line_num)),
-                OpCodes::PRINT => return Some(Instruction::new(Instructions::PRINT, op.line_num)),
-                OpCodes::PRINTASCII => return Some(Instruction::new(Instructions::PRINTASCII, op.line_num)),
-                OpCodes::POP => return Some(Instruction::new(Instructions::POP, op.line_num)),
-                OpCodes::DUP => return Some(Instruction::new(Instructions::DUP, op.line_num)),
-                OpCodes::SWAP => return Some(Instruction::new(Instructions::SWAP, op.line_num)),
-                OpCodes::ADD => return Some(Instruction::new(Instructions::ADD, op.line_num)),
-                OpCodes::SUB => return Some(Instruction::new(Instructions::SUB, op.line_num)),
-                OpCodes::EQ => return Some(Instruction::new(Instructions::EQ, op.line_num)),
-                OpCodes::LT => return Some(Instruction::new(Instructions::LT, op.line_num)),
-                OpCodes::GT => return Some(Instruction::new(Instructions::GT, op.line_num)),
-                OpCodes::MULT => return Some(Instruction::new(Instructions::MULT, op.line_num)),
-                OpCodes::DIV => return Some(Instruction::new(Instructions::DIV, op.line_num)),
+                OpCodes::PUSH(v) => return Some(Instruction::new(Instructions::PUSH(v), op.line_num, self.file.clone())),
+                OpCodes::PRINT => return Some(Instruction::new(Instructions::PRINT, op.line_num, self.file.clone())),
+                OpCodes::PRINTASCII => return Some(Instruction::new(Instructions::PRINTASCII, op.line_num, self.file.clone())),
+                OpCodes::POP => return Some(Instruction::new(Instructions::POP, op.line_num, self.file.clone())),
+                OpCodes::DUP => return Some(Instruction::new(Instructions::DUP, op.line_num, self.file.clone())),
+                OpCodes::SWAP => return Some(Instruction::new(Instructions::SWAP, op.line_num, self.file.clone())),
+                OpCodes::ADD => return Some(Instruction::new(Instructions::ADD, op.line_num, self.file.clone())),
+                OpCodes::SUB => return Some(Instruction::new(Instructions::SUB, op.line_num, self.file.clone())),
+                OpCodes::EQ => return Some(Instruction::new(Instructions::EQ, op.line_num, self.file.clone())),
+                OpCodes::LT => return Some(Instruction::new(Instructions::LT, op.line_num, self.file.clone())),
+                OpCodes::GT => return Some(Instruction::new(Instructions::GT, op.line_num, self.file.clone())),
+                OpCodes::MULT => return Some(Instruction::new(Instructions::MULT, op.line_num, self.file.clone())),
+                OpCodes::DIV => return Some(Instruction::new(Instructions::DIV, op.line_num, self.file.clone())),
                 OpCodes::IF => {
                     let mut if_block: Vec<Option<Instruction>> = Vec::new();
                     let mut else_block: Vec<Option<Instruction>> = Vec::new();
@@ -55,14 +55,14 @@ pub mod parser {
                                                 IfElse::new(
                                                     if_block, else_block
                                                 )
-                                            ), op.line_num));
+                                            ), op.line_num, self.file.clone()));
                                     } else if j.OpCode == OpCodes::END {
                                         return Some(Instruction::new(
                                             Instructions::If(
                                                 IfElse::new(
                                                     if_block, else_block
                                                 )
-                                            ), op.line_num));
+                                            ), op.line_num, self.file.clone()));
                                     }
                                 }
                             },
@@ -74,7 +74,7 @@ pub mod parser {
                             IfElse::new(
                                 if_block, else_block
                             )
-                        ), op.line_num));
+                        ), op.line_num, self.file.clone()));
                 },
                 OpCodes::WHILE => {
                     let mut cond: Vec<Option<Instruction>> = Vec::new();
@@ -97,7 +97,7 @@ pub mod parser {
                                                         contents
                                                     )
                                                 ),
-                                                op.line_num
+                                                op.line_num, self.file.clone()
                                             ))
                                         }
                                     }
@@ -111,7 +111,7 @@ pub mod parser {
                                 cond,
                                 contents
                             )
-                        ), op.line_num
+                        ), op.line_num, self.file.clone()
                     )
                     )
 
@@ -130,21 +130,21 @@ pub mod parser {
                                 if RESERVED_KEYWORDS.contains(&name.as_str()) {
                                     report_err(format!("Cannot assign variable with name of assigned keyword ({})", name).as_str(), self.file.as_str(), op.line_num);
                                 }
-                                return Some(Instruction::new(Instructions::VARDECLARE(VariableDefine {name: name.to_string(), instructions: instr}), op.line_num));
+                                return Some(Instruction::new(Instructions::VARDECLARE(VariableDefine {name: name.to_string(), instructions: instr}), op.line_num, self.file.clone()));
                             }
                         }
                     }
-                    return Some(Instruction::new(Instructions::VARDECLARE(VariableDefine {name: name.to_string(), instructions: instr}), op.line_num));
+                    return Some(Instruction::new(Instructions::VARDECLARE(VariableDefine {name: name.to_string(), instructions: instr}), op.line_num, self.file.clone()));
                 },
                 OpCodes::DEFINE => report_err("'def' statement found without matching variable declaration", self.file.as_str(), op.line_num),
-                OpCodes::IDENTIFIER(name) => Some(Instruction::new(Instructions::IDENTIFIER(name), op.line_num)),
-                OpCodes::SPAWN(name) => Some(Instruction::new(Instructions::SPAWN(name), op.line_num)),
-                OpCodes::SWITCH => Some(Instruction::new(Instructions::SWITCH, op.line_num)),
-                OpCodes::CLOSE => Some(Instruction::new(Instructions::CLOSE, op.line_num)),
-                OpCodes::STACK(name) => Some(Instruction::new(Instructions::STACK(name), op.line_num)),
-                OpCodes::THIS => Some(Instruction::new(Instructions::THIS, op.line_num)),
-                OpCodes::STACKS => Some(Instruction::new(Instructions::STACKS, op.line_num)),
-                OpCodes::STACKSIZE => Some(Instruction::new(Instructions::STACKSIZE, op.line_num)),
+                OpCodes::IDENTIFIER(name) => Some(Instruction::new(Instructions::IDENTIFIER(name), op.line_num, self.file.clone())),
+                OpCodes::SPAWN(name) => Some(Instruction::new(Instructions::SPAWN(name), op.line_num, self.file.clone())),
+                OpCodes::SWITCH => Some(Instruction::new(Instructions::SWITCH, op.line_num, self.file.clone())),
+                OpCodes::CLOSE => Some(Instruction::new(Instructions::CLOSE, op.line_num, self.file.clone())),
+                OpCodes::STACK(name) => Some(Instruction::new(Instructions::STACK(name), op.line_num, self.file.clone())),
+                OpCodes::THIS => Some(Instruction::new(Instructions::THIS, op.line_num, self.file.clone())),
+                OpCodes::STACKS => Some(Instruction::new(Instructions::STACKS, op.line_num, self.file.clone())),
+                OpCodes::STACKSIZE => Some(Instruction::new(Instructions::STACKSIZE, op.line_num, self.file.clone())),
                 OpCodes::STRING(contents) => {
                     let mut instrs = Vec::new();
                     for i in contents {
@@ -152,9 +152,9 @@ pub mod parser {
                             instrs.push(self.gen_instruction_from_op(instr));
                         }
                     }
-                    Some(Instruction::new(Instructions::STRING(instrs), op.line_num))
+                    Some(Instruction::new(Instructions::STRING(instrs), op.line_num, self.file.clone()))
                 },
-                OpCodes::STACKREV => Some(Instruction::new(Instructions::STACKREV, op.line_num)),
+                OpCodes::STACKREV => Some(Instruction::new(Instructions::STACKREV, op.line_num, self.file.clone())),
                 OpCodes::MACRO(name) => {
                     let mut instrs: Vec<Option<Instruction>> = Vec::new();
 
@@ -163,12 +163,12 @@ pub mod parser {
                             Some(j) => {
                                 if j.OpCode != OpCodes::END {
                                     instrs.push(self.gen_instruction_from_op(j))
-                                } else {return Some(Instruction::new(Instructions::MACRO( Macro { name: name, instructions: instrs}), op.line_num))}
+                                } else {return Some(Instruction::new(Instructions::MACRO( Macro { name: name, instructions: instrs}), op.line_num, self.file.clone()))}
                             },
                             None => continue
                         }
                     }
-                    Some(Instruction::new(Instructions::MACRO( Macro { name: name, instructions: instrs}), op.line_num))
+                    Some(Instruction::new(Instructions::MACRO( Macro { name: name, instructions: instrs}), op.line_num, self.file.clone()))
                 },
                 OpCodes::IMPORT(ops, file_path) => {
                     let parse = Parser {
@@ -181,9 +181,9 @@ pub mod parser {
                         instrs.push(Some(i));
                     }
 
-                    Some(Instruction::new(Instructions::IMPORT(instrs), op.line_num))
+                    Some(Instruction::new(Instructions::IMPORT(instrs), op.line_num, self.file.clone()))
                 },
-                OpCodes::EXIT => Some(Instruction::new(Instructions::EXIT, op.line_num))
+                OpCodes::EXIT => Some(Instruction::new(Instructions::EXIT, op.line_num, self.file.clone()))
             }
         }
     }

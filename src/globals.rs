@@ -96,14 +96,16 @@ pub mod globals {
     #[derive(Debug, Clone)]
     pub struct Instruction {
         pub Instruction: Instructions,
-        pub line_num: u8
+        pub line_num: u8,
+        pub file_name: String
     }
 
     impl Instruction {
-        pub fn new(instr: Instructions, line_num: u8) -> Self {
+        pub fn new(instr: Instructions, line_num: u8, file_name: String) -> Self {
             Instruction {
                 Instruction: instr,
-                line_num: line_num
+                line_num: line_num,
+                file_name
             }
         }
     }

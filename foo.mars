@@ -1,9 +1,15 @@
 using std.mars
 
 spawn my_stack
-switch 1 2 3 4 5 stack main switch
-stack my_stack
+switch 1 2 3 4 5
 
-print_stack
+this copy_stack switch
+@this_stack this def
+@counter 0 def
+@size stack_size def
+while counter size < do
+    print
+    @counter counter 1 + def
+end
 
 0 exit
