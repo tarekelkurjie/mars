@@ -2,25 +2,28 @@ pub mod lex {
     use crate::globals::globals::*;
     use std::vec::IntoIter;
     use std::iter::Peekable;
+    use std::path::PathBuf;
 
     use std::{fs, io};
 
     #[derive(Debug)]
     pub struct Lexer {
         raw_data: Peekable<IntoIter<char>>,
+        file: String,
         line_num: u8
     }
 
     impl Lexer {
-        pub fn from_text(text: &str) -> Self {
+        pub fn from_text(text: &str, file: String) -> Self {
             Lexer {
                 raw_data: text.chars().collect::<Vec<_>>().into_iter().peekable(),
-                line_num: 0
+                line_num: 1,
+                file
             }
         }
 
         pub fn from_file(file_path: &str) -> io::Result<Self> {
-            Ok(Self::from_text(&fs::read_to_string(file_path)?))
+            Ok(Self::from_text(&fs::read_to_string(file_path)?, file_path.to_string()))
         }
 
         fn get_next_char_while(&mut self, raw_token: String, cond: fn(char) -> bool) -> String {
@@ -40,6 +43,8 @@ pub mod lex {
         fn is_alphanumeric(c: char) -> bool {
             return c.is_alphanumeric() || c == '_';
         }
+
+        fn is_file_path(c: char) -> bool {return !c.is_whitespace(); }
 
         fn get_numeric(&mut self, c: char) -> String {
             let mut res: String = c.to_string();
@@ -166,7 +171,27 @@ pub mod lex {
                                 let name = self.get_next_char_while(token, |c| Self::is_alphanumeric(c));
 
                                 return Some(Operation::new(OpCodes::MACRO(name), self.line_num));
-                            }
+                            },
+                            "using" => {
+                                self.raw_data.next();
+                                let token: String = self.raw_data.next().expect("ERROR: No character found").to_string();
+                                let value = self.get_next_char_while(token, |c| Self::is_file_path(c));
+
+                                let mut res = Vec::new();
+
+                                let mut absolute_path = std::env::current_dir().ok()?;
+                                absolute_path.push(self.file.to_string());
+                                let mut path = PathBuf::from(absolute_path.parent().unwrap());
+                                path.push(value.to_string());
+
+                                let nested_lex = Self::from_file(path.to_str().unwrap()).unwrap();
+                                for item in nested_lex {
+                                    res.push(Some(item));
+                                }
+
+                                return Some(Operation::new(OpCodes::IMPORT(res, value), self.line_num));
+                            },
+                            "exit" => return Some(Operation::new(OpCodes::EXIT, self.line_num)),
                             _ => return Some(Operation::new(OpCodes::IDENTIFIER(identifier.trim().to_string()), self.line_num))
                         }
                     }

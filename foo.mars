@@ -1,6 +1,15 @@
-macro do_err
-    123
-    switch
+using std.mars
+
+spawn my_stack
+switch 1 2 3 4 5
+
+this copy_stack switch
+@this_stack this def
+@counter 0 def
+@size stack_size def
+while counter size < do
+    print
+    @counter counter 1 + def
 end
 
-do_err
+0 exit

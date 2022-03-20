@@ -34,7 +34,9 @@ pub mod globals {
         STACKSIZE,
         STACKREV,
         STRING(Vec<Option<Operation>>), // String literal
-        MACRO(String)
+        MACRO(String),
+        IMPORT(Vec<Option<Operation>>, String),
+        EXIT
     }
 
     #[derive(Debug, Clone)]
@@ -65,7 +67,9 @@ pub mod globals {
         STACKSIZE,
         STACKREV,
         STRING(Vec<Option<Instruction>>),
-        MACRO(Macro)
+        MACRO(Macro),
+        IMPORT(Vec<Option<Instruction>>),
+        EXIT
     }
 
     #[derive(Debug, Clone, PartialEq)]
@@ -92,14 +96,16 @@ pub mod globals {
     #[derive(Debug, Clone)]
     pub struct Instruction {
         pub Instruction: Instructions,
-        pub line_num: u8
+        pub line_num: u8,
+        pub file_name: String
     }
 
     impl Instruction {
-        pub fn new(instr: Instructions, line_num: u8) -> Self {
+        pub fn new(instr: Instructions, line_num: u8, file_name: String) -> Self {
             Instruction {
                 Instruction: instr,
-                line_num: line_num
+                line_num: line_num,
+                file_name
             }
         }
     }
