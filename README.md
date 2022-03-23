@@ -7,7 +7,7 @@ Syntax heavily inspired by [porth](https://gitlab.com/tsoding/porth)
 - [x] Implement all basic programming uses (if/else, loops, variables, etc)
 - [x] Implement string literals
 - [x] Better error handling
-- [ ] Implement import/export system (either simple C-like 'include' or a module system)
+- [x] Implement import/export system (either simple C-like 'include' or a module system)
 - [ ] Write a compiler
 - [ ] Write a standard library
 
