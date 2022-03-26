@@ -32,7 +32,7 @@ fn main() {
 
     // println!("{:?}", operations);
 
-    let parse = Parser::new(operations.into_iter(), args[1].to_string());
+    let parse = Parser::new(operations.into_iter().peekable(), args[1].to_string());
 
     let mut instructions = Vec::new();
 

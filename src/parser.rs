@@ -1,14 +1,15 @@
 pub mod parser {
     use crate::globals::globals::*;
     use std::vec::IntoIter;
+    use std::iter::Peekable;
 
     pub struct Parser {
-        operations: IntoIter<Option<Operation>>,
+        operations: Peekable<IntoIter<Option<Operation>>>,
         file: String
     }
 
     impl Parser {
-        pub fn new(data: IntoIter<Option<Operation>>, file: String) -> Self {
+        pub fn new(data: Peekable<IntoIter<Option<Operation>>>, file: String) -> Self {
             Parser {
                 operations: data,
                 file
@@ -178,8 +179,14 @@ pub mod parser {
                         let mut instructions = Vec::new();
 
                         if self.operations.next().unwrap_or_else(|| report_err("'procedure' statement found with excessive name parameters", self.file.as_str(), op.line_num)).unwrap().OpCode == OpCodes::IN {
-                            while let OpCodes::IDENTIFIER(arg) = self.operations.next().unwrap_or_else(|| report_err("'procedure' statement found without matching block", self.file.as_str(), op.line_num)).unwrap().OpCode {
-                                args.push(arg.to_string());
+                            loop {
+                                let operation = self.operations.peek().unwrap_or_else(|| report_err("'procedure' statement found with excessive name parameters", self.file.as_str(), op.line_num));
+                                if let OpCodes::IDENTIFIER(name) = &operation.as_ref().unwrap().OpCode {
+                                    args.push(name.to_string());
+                                    self.operations.next();
+                                } else {
+                                    break;
+                                }
                             }
                             if self.operations.next().unwrap_or_else(|| report_err("'procedure' statement found without body", self.file.as_str(), op.line_num)).unwrap().OpCode == OpCodes::DO {
                                 while let Some(i) = self.operations.next() {
@@ -221,7 +228,7 @@ pub mod parser {
                 OpCodes::IN => report_err("'in' statement found without matching 'procedure'", self.file.as_str(), op.line_num),
                 OpCodes::IMPORT(ops, file_path) => {
                     let parse = Parser {
-                        operations: ops.into_iter(),
+                        operations: ops.into_iter().peekable(),
                         file: file_path
                     };
 

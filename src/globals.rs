@@ -1,6 +1,5 @@
 pub mod globals {
-    #[derive(PartialEq)]
-    #[derive(Debug)]
+    #[derive(Debug, Clone, PartialEq)]
     pub enum OpCodes {
         PUSH(u8), // Begin stack manipulation
         POP,
@@ -86,7 +85,7 @@ pub mod globals {
         pub instructions: Vec<Instruction>,
     }
 
-    #[derive(Debug, PartialEq)]
+    #[derive(Debug, Clone, PartialEq)]
      pub struct Operation {
         pub OpCode: OpCodes,
         pub line_num: u8
