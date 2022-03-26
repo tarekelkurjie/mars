@@ -170,6 +170,55 @@ pub mod parser {
                     }
                     Some(Instruction::new(Instructions::MACRO( Macro { name: name, instructions: instrs}), op.line_num, self.file.clone()))
                 },
+                OpCodes::PROCEDURE => {
+                    let operation = self.operations.next().unwrap_or_else(|| report_err("'procedure' statement found without matching block", self.file.as_str(), op.line_num));
+
+                    if let OpCodes::IDENTIFIER(name) = operation.unwrap().OpCode {
+                        let mut args = Vec::new();
+                        let mut instructions = Vec::new();
+
+                        if self.operations.next().unwrap_or_else(|| report_err("'procedure' statement found with excessive name parameters", self.file.as_str(), op.line_num)).unwrap().OpCode == OpCodes::IN {
+                            while let OpCodes::IDENTIFIER(arg) = self.operations.next().unwrap_or_else(|| report_err("'procedure' statement found without matching block", self.file.as_str(), op.line_num)).unwrap().OpCode {
+                                args.push(arg.to_string());
+                            }
+                            if self.operations.next().unwrap_or_else(|| report_err("'procedure' statement found without body", self.file.as_str(), op.line_num)).unwrap().OpCode == OpCodes::DO {
+                                while let Some(i) = self.operations.next() {
+                                    if let Some(j) = i {
+                                        if j.OpCode != OpCodes::END {
+                                            instructions.push(self.gen_instruction_from_op(j).unwrap());
+                                        } else {
+                                            return Some(Instruction::new(Instructions::PROCEDURE(ProcedureDefine {
+                                                name: name.to_string(),
+                                                args: args,
+                                                instructions: instructions
+                                            }), op.line_num, self.file.clone()));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        else if self.operations.next().unwrap_or_else(|| report_err("'procedure' statement found without body", self.file.as_str(), op.line_num)).unwrap().OpCode == OpCodes::DO {
+                            while let Some(i) = self.operations.next() {
+                                if let Some(j) = i {
+                                    if j.OpCode != OpCodes::END {
+                                        instructions.push(self.gen_instruction_from_op(j).unwrap());
+                                    } else {
+                                        return Some(Instruction::new(Instructions::PROCEDURE(ProcedureDefine {
+                                            name: name.to_string(),
+                                            args: args,
+                                            instructions: instructions
+                                        }), op.line_num, self.file.clone()));
+                                    }
+                                }
+                            }
+                        }
+                        else {
+                            report_err("'procedure' statement found with unfinished definition", self.file.as_str(), op.line_num);
+                        }
+                    }
+                    report_err("'procedure' statement found with unfinished definition", self.file.as_str(), op.line_num);
+                },
+                OpCodes::IN => report_err("'in' statement found without matching 'procedure'", self.file.as_str(), op.line_num),
                 OpCodes::IMPORT(ops, file_path) => {
                     let parse = Parser {
                         operations: ops.into_iter(),

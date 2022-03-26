@@ -174,6 +174,8 @@ pub mod lex {
 
                                 return Some(Operation::new(OpCodes::MACRO(name), self.line_num));
                             },
+                            "procedure" => return Some(Operation::new(OpCodes::PROCEDURE, self.line_num)),
+                            "in" => return Some(Operation::new(OpCodes::IN, self.line_num)),
                             "using" => {
                                 self.raw_data.next();
                                 let token: String = self.raw_data.next().expect("ERROR: No character found").to_string();

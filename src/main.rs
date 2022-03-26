@@ -46,6 +46,7 @@ fn main() {
         current_stack: None,
         data_stack: &mut HashMap::new(),
         macro_stack: &mut HashMap::new(),
+        proc_stack: &mut HashMap::new(),
         stack_stack: &mut HashMap::new(),
         file: args[1].to_string()
     };

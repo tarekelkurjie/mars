@@ -8,6 +8,7 @@ pub mod program {
         pub current_stack: Option<*mut Vec<DataTypes>>,
         pub data_stack: &'a mut HashMap<String, DataTypes>,
         pub macro_stack: &'a mut HashMap<String, Vec<Option<Instruction>>>,
+        pub proc_stack: &'a mut HashMap<String, ProcedureDefine>,
         pub stack_stack: &'a mut HashMap<String, Vec<DataTypes>>,
         pub file: String,
     }
@@ -200,7 +201,7 @@ pub mod program {
                 Instructions::IDENTIFIER(data_name) => {
                     if let Some(data) = self.data_stack.get(data_name) {
                         self.stack.push(data.clone());
-                    } else {
+                    } else if let Some(_data) = self.macro_stack.get(data_name) {
                         let mut value: &Vec<Option<Instruction>> = &Vec::new();
                         if let Some(val) = self.macro_stack.get(data_name) {
                             value = val;
@@ -210,6 +211,18 @@ pub mod program {
                             if let Some(i) = instr {
                                 self.evaluate_instruction(&i);
                             }
+                        }
+                    } else if let Some(data) = self.proc_stack.clone().get(data_name) {
+                        for i in data.args.iter() {
+                            self.data_stack.insert( i.to_string(), self.stack.pop().unwrap_or_else(|| report_err("No value on stack to assign to parameter", instruction.file_name.as_str(), instruction.line_num.clone())));
+                        }
+
+                        for instr in &data.instructions.to_vec() {   
+                            self.evaluate_instruction(&instr);
+                        }
+
+                        for i in data.args.iter() {
+                            self.data_stack.remove(&i.to_string());
                         }
                     }
                 },
@@ -291,6 +304,12 @@ pub mod program {
                         nested_instructions.to_owned().instructions
                     );
                 },
+                Instructions::PROCEDURE(nested_struct) => {
+                    self.proc_stack.insert(
+                        nested_struct.name.to_string(),
+                        nested_struct.clone()
+                    );
+                }
                 Instructions::IMPORT(nested_instructions) => {
                     for instr in nested_instructions {
                         self.evaluate_instruction(&instr.as_ref().unwrap());

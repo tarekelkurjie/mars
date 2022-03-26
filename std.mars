@@ -1,11 +1,11 @@
 macro copy_stack
     switch
     spawn replacement_stack
-    @this_stack this def
-    @stack_copy dup def
+    var this_stack this def
+    var stack_copy dup def
     while this_stack stack_size 1 > do
         this_stack switch
-        @current dup def
+        var current dup def
         pop
         stack_copy switch
     end
@@ -16,15 +16,15 @@ end
 
 // Prints the string whose pointer is on the top of the stack
 macro puts
-    @prev_stack this def
+    var prev_stack this def
     dup
     switch
     stack_rev
-    @counter 0 def
-    @size stack_size def
+    var counter 0 def
+    var size stack_size def
     while counter size < do
         print_ascii
-        @counter counter 1 + def
+        var counter counter 1 + def
     end
     prev_stack
     switch
@@ -34,25 +34,25 @@ end
 macro eputs
     switch
     stack_rev
-    @counter 0 def
-    @size stack_size def
+    var counter 0 def
+    var size stack_size def
     while counter size < do
         print_ascii
-        @counter counter 1 + def
+        var counter counter 1 + def
     end
     1 exit
 end
 
 // Prints all contents of the stack whose pointer is on the top of the stack WITHOUT modifying the contents of the stack
 macro print_stack
-    @this_stack this def
+    var this_stack this def
     copy_stack switch
-    @new_stack this def
-    @counter 0 def
-    @size stack_size def
+    var new_stack this def
+    var counter 0 def
+    var size stack_size def
     while counter size < do
         print
-        @counter counter 1 + def
+        var counter counter 1 + def
     end
     this_stack switch
     new_stack close

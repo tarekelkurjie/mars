@@ -29,12 +29,14 @@ pub mod globals {
         STACK(String),
         THIS,
         STACKS,
-        STACKSIZE,
+        STACKSIZE, 
         STACKREV,
         STRING(Vec<Option<Operation>>), // String literal
-        MACRO(String),
-        IMPORT(Vec<Option<Operation>>, String),
-        EXIT
+        MACRO(String), // Begin macro
+        PROCEDURE,
+        IN,
+        IMPORT(Vec<Option<Operation>>, String), // Begin import
+        EXIT 
     }
 
     #[derive(Debug, Clone)]
@@ -66,6 +68,7 @@ pub mod globals {
         STACKREV,
         STRING(Vec<Option<Instruction>>),
         MACRO(Macro),
+        PROCEDURE(ProcedureDefine),
         IMPORT(Vec<Option<Instruction>>),
         EXIT
     }
@@ -74,6 +77,13 @@ pub mod globals {
     pub enum DataTypes {
         INT(u8),
         STACKPOINTER(*mut Vec<DataTypes>),
+    }
+
+    #[derive(Debug, Clone)]
+    pub struct ProcedureDefine {
+        pub name: String,
+        pub args: Vec<String>,
+        pub instructions: Vec<Instruction>,
     }
 
     #[derive(Debug, PartialEq)]
