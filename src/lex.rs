@@ -74,7 +74,7 @@ pub mod lex {
                         if let Some(char) = self.raw_data.next() {
                             if char == '/' {
                                 while let Some(c) = self.raw_data.next() {
-                                    if c != '\n' { continue; } else { break; }
+                                    if c != '\n' { continue; } else { self.line_num += 1; break; }
                                 }
                             }
                         }
