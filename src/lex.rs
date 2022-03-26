@@ -80,11 +80,6 @@ pub mod lex {
                         }
                     } else if first_char == '\n' {
                         self.line_num += 1;
-                    } else if first_char == '@' { // Variable declaration
-                        let token: String = self.raw_data.next().expect("ERROR: No character found").to_string();
-                        let name = self.get_next_char_while(token, |c| Self::is_alphanumeric(c));
-
-                        return Some(Operation::new(OpCodes::VARDECLARE(name.to_string()), self.line_num));
                     } else if first_char == '"' { // String literal
                         let mut res: String = self.raw_data.next().expect("ERROR: Unexpected character \"").to_string();
                         while self.raw_data.peek() != Some(&'"') {
@@ -144,6 +139,13 @@ pub mod lex {
                             ">" => return Some(Operation::new(OpCodes::GT, self.line_num)),
                             "*" => return Some(Operation::new(OpCodes::MULT, self.line_num)),
                             "/" => return Some(Operation::new(OpCodes::DIV, self.line_num)),
+                            "var" => {
+                                self.raw_data.next();
+                                let token: String = self.raw_data.next().expect("ERROR: No character found").to_string();
+                                let name = self.get_next_char_while(token, |c| Self::is_alphanumeric(c));
+
+                                return Some(Operation::new(OpCodes::VARDECLARE(name.to_string()), self.line_num));
+                            }
                             "def" => return Some(Operation::new(OpCodes::DEFINE, self.line_num)),
                             "spawn" => {
                                 self.raw_data.next();

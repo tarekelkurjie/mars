@@ -4,12 +4,12 @@
 mod globals;
 mod lex;
 mod parser;
-mod program;
+mod interpreter;
 
 use globals::globals::*;
 use lex::lex::Lexer;
 use parser::parser::Parser;
-use program::program::Program;
+use interpreter::program::Program;
 
 use std::collections::HashMap;
 use std::env;
@@ -32,7 +32,7 @@ fn main() {
 
     // println!("{:?}", operations);
 
-    let parse = Parser::new(operations.into_iter(), args[0].to_string());
+    let parse = Parser::new(operations.into_iter(), args[1].to_string());
 
     let mut instructions = Vec::new();
 

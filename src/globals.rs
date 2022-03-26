@@ -1,6 +1,4 @@
 pub mod globals {
-    use colored::*;
-
     #[derive(PartialEq)]
     #[derive(Debug)]
     pub enum OpCodes {
@@ -177,7 +175,7 @@ pub mod globals {
     ];
 
     pub fn report_err(message: &str, file: &str, line_num: u8) -> ! {
-        eprintln!("{}:{} {}: {}", file, line_num, format!("ERROR").red(), message);
+        eprintln!("{}:{} {}: {}", file, line_num, format!("\x1b[93mError\x1b[0m"), message);
         std::process::exit(1);
     }
 }
