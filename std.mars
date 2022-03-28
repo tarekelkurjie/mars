@@ -1,13 +1,15 @@
-macro copy_stack
-    switch
+procedure copy_stack in stack_to_copy do
+    stack_to_copy switch
     spawn replacement_stack
-    var this_stack this def
     var stack_copy dup def
-    while this_stack stack_size 1 > do
-        this_stack switch
-        var current dup def
-        pop
-        stack_copy switch
+
+    var index 0 def
+    while index stack_to_copy stack_size < do
+        var current [index] def
+        stack_copy switch current
+        stack_to_copy switch
+
+        var index index 1 + def
     end
     this_stack switch
     stack_copy
@@ -17,7 +19,7 @@ end
 // Prints string
 // @param string: pointer to stack containing string
 procedure puts in string do
-    var prev_stack this defssssssssssss
+    var prev_stack this def
     string dup
     switch
     stack_rev
@@ -35,19 +37,4 @@ end
 procedure eputs in string do
     string puts
     1 exit
-end
-
-// Prints all contents of the stack whose pointer is on the top of the stack WITHOUT modifying the contents of the stack
-macro print_stack
-    var this_stack this def
-    copy_stack switch
-    var new_stack this def
-    var counter 0 def
-    var size stack_size def
-    while counter size < do
-        print
-        var counter counter 1 + def
-    end
-    this_stack switch
-    new_stack close
 end

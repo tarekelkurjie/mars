@@ -167,13 +167,6 @@ pub mod lex {
                             "stacks" => return Some(Operation::new(OpCodes::STACKS, self.line_num)),
                             "stack_size" => return Some(Operation::new(OpCodes::STACKSIZE, self.line_num)),
                             "stack_rev" => return Some(Operation::new(OpCodes::STACKREV, self.line_num)),
-                            "macro" => {
-                                self.raw_data.next();
-                                let token: String = self.raw_data.next().expect("ERROR: No character found").to_string();
-                                let name = self.get_next_char_while(token, |c| Self::is_alphanumeric(c));
-
-                                return Some(Operation::new(OpCodes::MACRO(name), self.line_num));
-                            },
                             "procedure" => return Some(Operation::new(OpCodes::PROCEDURE, self.line_num)),
                             "in" => return Some(Operation::new(OpCodes::IN, self.line_num)),
                             "using" => {

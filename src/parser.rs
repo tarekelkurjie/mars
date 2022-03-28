@@ -156,21 +156,6 @@ pub mod parser {
                     Some(Instruction::new(Instructions::STRING(instrs), op.line_num, self.file.clone()))
                 },
                 OpCodes::STACKREV => Some(Instruction::new(Instructions::STACKREV, op.line_num, self.file.clone())),
-                OpCodes::MACRO(name) => {
-                    let mut instrs: Vec<Option<Instruction>> = Vec::new();
-
-                    while let Some(i) = self.operations.next() {
-                        match i {
-                            Some(j) => {
-                                if j.OpCode != OpCodes::END {
-                                    instrs.push(self.gen_instruction_from_op(j))
-                                } else {return Some(Instruction::new(Instructions::MACRO( Macro { name: name, instructions: instrs}), op.line_num, self.file.clone()))}
-                            },
-                            None => continue
-                        }
-                    }
-                    Some(Instruction::new(Instructions::MACRO( Macro { name: name, instructions: instrs}), op.line_num, self.file.clone()))
-                },
                 OpCodes::PROCEDURE => {
                     let operation = self.operations.next().unwrap_or_else(|| report_err("'procedure' statement found without matching block", self.file.as_str(), op.line_num));
 

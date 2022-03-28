@@ -31,8 +31,7 @@ pub mod globals {
         STACKSIZE, 
         STACKREV,
         STRING(Vec<Option<Operation>>), // String literal
-        MACRO(String), // Begin macro
-        PROCEDURE,
+        PROCEDURE, // Begin procedure
         IN,
         IMPORT(Vec<Option<Operation>>, String), // Begin import
         EXIT 
@@ -66,7 +65,6 @@ pub mod globals {
         STACKSIZE,
         STACKREV,
         STRING(Vec<Option<Instruction>>),
-        MACRO(Macro),
         PROCEDURE(ProcedureDefine),
         IMPORT(Vec<Option<Instruction>>),
         EXIT

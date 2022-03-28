@@ -1,3 +1,7 @@
 using std.mars
 
-spawn my_stack switch 1 2 3 4 5 stack main switch stack my_stack copy_stack switch
+spawn my_stack
+switch
+1 2 3 4 5
+this copy_stack
+switch print

@@ -7,7 +7,6 @@ pub mod program {
         pub stack: &'a mut Vec<DataTypes>,
         pub current_stack: Option<*mut Vec<DataTypes>>,
         pub data_stack: &'a mut HashMap<String, DataTypes>,
-        pub macro_stack: &'a mut HashMap<String, Vec<Option<Instruction>>>,
         pub proc_stack: &'a mut HashMap<String, ProcedureDefine>,
         pub stack_stack: &'a mut HashMap<String, Vec<DataTypes>>,
         pub file: String,
@@ -201,20 +200,9 @@ pub mod program {
                 Instructions::IDENTIFIER(data_name) => {
                     if let Some(data) = self.data_stack.get(data_name) {
                         self.stack.push(data.clone());
-                    } else if let Some(_data) = self.macro_stack.get(data_name) {
-                        let mut value: &Vec<Option<Instruction>> = &Vec::new();
-                        if let Some(val) = self.macro_stack.get(data_name) {
-                            value = val;
-                        }
-
-                        for instr in value.to_vec() {
-                            if let Some(i) = instr {
-                                self.evaluate_instruction(&i);
-                            }
-                        }
                     } else if let Some(data) = self.proc_stack.clone().get(data_name) {
                         for i in data.args.iter() {
-                            self.data_stack.insert( i.to_string(), self.stack.pop().unwrap_or_else(|| report_err("No value on stack to assign to parameter", instruction.file_name.as_str(), instruction.line_num.clone())));
+                            self.data_stack.insert(i.to_string(), self.stack.pop().unwrap_or_else(|| report_err("No value on stack to assign to parameter", instruction.file_name.as_str(), instruction.line_num.clone())));
                         }
 
                         for instr in &data.instructions.to_vec() {   
@@ -294,15 +282,6 @@ pub mod program {
                             self.evaluate_instruction(instr);
                         }
                     }
-                },
-                Instructions::MACRO(nested_instructions) => {
-                    if RESERVED_KEYWORDS.contains(&nested_instructions.name.as_str()) {
-                        report_err(format!("ERROR: Cannot assign variable with name of assigned keyword ({})", nested_instructions.name).as_str(), instruction.file_name.as_str(), instruction.line_num);
-                    }
-                    self.macro_stack.insert(
-                        nested_instructions.to_owned().name,
-                        nested_instructions.to_owned().instructions
-                    );
                 },
                 Instructions::PROCEDURE(nested_struct) => {
                     self.proc_stack.insert(
