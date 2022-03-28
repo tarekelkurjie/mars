@@ -2,6 +2,12 @@ pub mod program {
     use crate::globals::globals::*;
     use std::collections::HashMap;
 
+    pub enum StorageTypes {
+        Stack,
+        Variable,
+        Procedure
+    }
+
     pub struct Program<'a> {
         pub instructions: &'a Vec<Option<Instruction>>,
         pub stack: &'a mut Vec<DataTypes>,
@@ -9,6 +15,7 @@ pub mod program {
         pub data_stack: &'a mut HashMap<String, DataTypes>,
         pub proc_stack: &'a mut HashMap<String, ProcedureDefine>,
         pub stack_stack: &'a mut HashMap<String, Vec<DataTypes>>,
+        pub names: &'a mut HashMap<String, StorageTypes>,
         pub file: String,
     }
 
@@ -189,13 +196,23 @@ pub mod program {
                     }
                 },
                 Instructions::VARDECLARE(nested_struct) => {
-                    for instr in &nested_struct.instructions {
-                        self.evaluate_instruction(&instr.as_ref().unwrap());
+                    if let None = self.names.get(&nested_struct.name.to_string()) {
+                        self.names.insert(nested_struct.name.to_string(), StorageTypes::Variable);
+                        for instr in &nested_struct.instructions {
+                            self.evaluate_instruction(&instr.as_ref().unwrap());
+                        }
+                        self.data_stack.insert(
+                            nested_struct.name.to_string(),
+                            self.stack.pop().unwrap_or_else(|| report_err(format!("No data on stack to assign to variable {}", &nested_struct.name).as_str(), instruction.file_name.as_str(), instruction.line_num.clone()))
+                        );
+                    } else {
+                        report_err(format!("Entity with name '{}' and type '{}' already exists", nested_struct.name, match &self.names.get(&nested_struct.name) {
+                            Some(StorageTypes::Procedure) => "Procedure",
+                            Some(StorageTypes::Variable) => "Variable",
+                            Some(StorageTypes::Stack) => "Stack",
+                            None => "Unknown",
+                        }).as_str(), instruction.file_name.as_str(), instruction.line_num.clone());
                     }
-                    self.data_stack.insert(
-                        nested_struct.name.to_string(),
-                        self.stack.pop().unwrap_or_else(|| report_err(format!("No data on stack to assign to variable {}", &nested_struct.name).as_str(), instruction.file_name.as_str(), instruction.line_num.clone()))
-                    );
                 },
                 Instructions::IDENTIFIER(data_name) => {
                     if let Some(data) = self.data_stack.get(data_name) {
@@ -216,11 +233,21 @@ pub mod program {
                 },
                 Instructions::SPAWN(name) => {
                     if RESERVED_KEYWORDS.contains(&name.as_str()) { report_err(format!("ERROR: Cannot assign variable with name of assigned keyword ({})", name).as_str(), instruction.file_name.as_str(), instruction.line_num.clone()); }
-                    self.stack_stack.insert(
-                        name.to_string(),
-                        Vec::new()
-                    );
-                    self.stack.push(DataTypes::STACKPOINTER(self.stack_stack.get_mut(name).unwrap() as *mut Vec<DataTypes>))
+                    if let None = self.names.get(name) {
+                        self.names.insert(name.to_string(), StorageTypes::Stack);
+                        self.stack_stack.insert(
+                            name.to_string(),
+                            Vec::new()
+                        );
+                        self.stack.push(DataTypes::STACKPOINTER(self.stack_stack.get_mut(name).unwrap() as *mut Vec<DataTypes>))
+                    } else {
+                        report_err(format!("Entity with name '{}' and type '{}' already exists", name, match &self.names.get(name) {
+                            Some(StorageTypes::Procedure) => "Procedure",
+                            Some(StorageTypes::Variable) => "Variable",
+                            Some(StorageTypes::Stack) => "Stack",
+                            None => "Unknown",
+                        }).as_str(), instruction.file_name.as_str(), instruction.line_num.clone());
+                    }
                 },
                 Instructions::SWITCH => {
                     if let Some(value) = self.stack.pop() {
@@ -284,10 +311,20 @@ pub mod program {
                     }
                 },
                 Instructions::PROCEDURE(nested_struct) => {
-                    self.proc_stack.insert(
-                        nested_struct.name.to_string(),
-                        nested_struct.clone()
-                    );
+                    if let None = self.names.get(&nested_struct.name.to_string()) {
+                        self.names.insert(nested_struct.name.to_string(), StorageTypes::Procedure);
+                        self.proc_stack.insert(
+                            nested_struct.name.to_string(),
+                            nested_struct.clone()
+                        );
+                    } else {
+                        report_err(format!("Entity with name '{}' and type '{}' already exists", nested_struct.name, match &self.names.get(&nested_struct.name.to_string()) {
+                            Some(StorageTypes::Procedure) => "Procedure",
+                            Some(StorageTypes::Variable) => "Variable",
+                            Some(StorageTypes::Stack) => "Stack",
+                            None => "Unknown",
+                        }).as_str(), instruction.file_name.as_str(), instruction.line_num.clone());
+                    }
                 }
                 Instructions::IMPORT(nested_instructions) => {
                     for instr in nested_instructions {
