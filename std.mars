@@ -14,10 +14,11 @@ macro copy_stack
 end
 
 
-// Prints the string whose pointer is on the top of the stack
-macro puts
-    var prev_stack this def
-    dup
+// Prints string
+// @param string: pointer to stack containing string
+procedure puts in string do
+    var prev_stack this defssssssssssss
+    string dup
     switch
     stack_rev
     var counter 0 def
@@ -31,15 +32,8 @@ macro puts
     close
 end
 
-macro eputs
-    switch
-    stack_rev
-    var counter 0 def
-    var size stack_size def
-    while counter size < do
-        print_ascii
-        var counter counter 1 + def
-    end
+procedure eputs in string do
+    string puts
     1 exit
 end
 
