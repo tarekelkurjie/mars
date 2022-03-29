@@ -206,12 +206,12 @@ pub mod program {
                             self.stack.pop().unwrap_or_else(|| report_err(format!("No data on stack to assign to variable {}", &nested_struct.name).as_str(), instruction.file_name.as_str(), instruction.line_num.clone()))
                         );
                     } else {
-                        report_err(format!("Entity with name '{}' and type '{}' already exists", nested_struct.name, match &self.names.get(&nested_struct.name) {
+                        report_err(format!("{} with name '{}' already exists", match &self.names.get(&nested_struct.name) {
                             Some(StorageTypes::Procedure) => "Procedure",
                             Some(StorageTypes::Variable) => "Variable",
                             Some(StorageTypes::Stack) => "Stack",
                             None => "Unknown",
-                        }).as_str(), instruction.file_name.as_str(), instruction.line_num.clone());
+                        }, nested_struct.name).as_str(), instruction.file_name.as_str(), instruction.line_num.clone());
                     }
                 },
                 Instructions::IDENTIFIER(data_name) => {
@@ -241,12 +241,12 @@ pub mod program {
                         );
                         self.stack.push(DataTypes::STACKPOINTER(self.stack_stack.get_mut(name).unwrap() as *mut Vec<DataTypes>))
                     } else {
-                        report_err(format!("Entity with name '{}' and type '{}' already exists", name, match &self.names.get(name) {
+                        report_err(format!("{} with name '{}' already exists", match &self.names.get(name) {
                             Some(StorageTypes::Procedure) => "Procedure",
                             Some(StorageTypes::Variable) => "Variable",
                             Some(StorageTypes::Stack) => "Stack",
                             None => "Unknown",
-                        }).as_str(), instruction.file_name.as_str(), instruction.line_num.clone());
+                        }, name).as_str(), instruction.file_name.as_str(), instruction.line_num.clone());
                     }
                 },
                 Instructions::SWITCH => {
@@ -318,12 +318,12 @@ pub mod program {
                             nested_struct.clone()
                         );
                     } else {
-                        report_err(format!("Entity with name '{}' and type '{}' already exists", nested_struct.name, match &self.names.get(&nested_struct.name.to_string()) {
+                        report_err(format!("{} with name '{}' already exists", match &self.names.get(&nested_struct.name.to_string()) {
                             Some(StorageTypes::Procedure) => "Procedure",
                             Some(StorageTypes::Variable) => "Variable",
                             Some(StorageTypes::Stack) => "Stack",
                             None => "Unknown",
-                        }).as_str(), instruction.file_name.as_str(), instruction.line_num.clone());
+                        }, nested_struct.name).as_str(), instruction.file_name.as_str(), instruction.line_num.clone());
                     }
                 }
                 Instructions::IMPORT(nested_instructions) => {
