@@ -160,6 +160,15 @@ pub mod parser {
                     let operation = self.operations.next().unwrap_or_else(|| report_err("'procedure' statement found without matching block", self.file.as_str(), op.line_num));
 
                     if let OpCodes::IDENTIFIER(name) = operation.unwrap().OpCode {
+                        let slice: Vec<Option<Operation>> = self.operations.clone().collect();
+                        
+                        for item in slice {
+                            let value = item.unwrap();
+                            if value.OpCode == OpCodes::IDENTIFIER(name.to_string()) {
+                                break;
+                            } return None;
+                        }
+
                         let mut args = Vec::new();
                         let mut instructions = Vec::new();
 
