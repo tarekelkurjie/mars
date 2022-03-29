@@ -1,0 +1,72 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "Mars",
+	"patterns": [
+		{
+			"include": "#comments"
+		},
+		{
+			"include": "#numbers"
+		},
+		{
+			"include": "#strings"
+		},
+		{
+			"include": "#operators"
+		},
+		{
+			"include": "#reserved-keywords"
+		},
+		{
+			"include": "#ctrl-statements"
+		},
+		{
+			"include": "#storage"
+		}
+	],
+	"repository": {
+		"ctrl-statements": {
+			"patterns": [{
+				"name": "keyword.control.mars",
+				"match": "\\b(if|else|while|do|end)\\b"
+			}]
+		},
+		"storage": {
+			"patterns": [
+			{
+				"name": "keyword.other.mars storage.type.mars",
+				"match": "\\b(var|macro|def|procedure|in|using)\\b"
+			}
+		]
+		},
+		"strings": {
+			"name": "string.quoted.double.mars",
+			"begin": "\"",
+			"end": "\"",
+			"patterns": [
+				{
+					"name": "constant.character.escape.mars",
+					"match": "\\\\."
+				}
+			]
+		},
+		"numbers": {
+			"name": "keyword.other.unit.suffix.integer.mars",
+			"match": "[0-9]+"
+		},
+		"comments": {
+			"name": "comment.line.double-slash.mars",
+			"begin": "\\s*//.*",
+			"end": "\\n"
+		},
+		"reserved-keywords": {
+			"name": "entity.name.function.member.mars",
+			"match": "\\b(print|print_ascii|stack_rev|stack_size|this|stack|stacks|switch|close|exit|spawn)\\b"
+		},
+		"operators": {
+			"name": "keyword.operator.mars",
+			"match": "(\\+|-|\\/|\\*|<|>|=)"
+		}
+	},
+	"scopeName": "source.mars"
+}
