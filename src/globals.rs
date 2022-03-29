@@ -182,11 +182,19 @@ pub mod globals {
     ];
 
     pub fn report_err(message: &str, file: &str, line_num: u8) -> ! {
-        eprintln!("{}:{} {}: {}", file, line_num, format!("\x1b[91mError\x1b[0m"), message);
+        eprintln!("{}:{} {}: {}", file, line_num, red("error"), message);
         std::process::exit(1);
     }
 
     pub fn report_warn(message: &str, file: &str, line_num: u8) {
-        println!("{}:{} {}: {}", file, line_num, format!("\x1b[93mWarning\x1b[0m"), message);
+        println!("{}:{} {}: {}", file, line_num, orange("warning"), message);
+    }
+
+    fn red(input: &str) -> String {
+        format!("\x1b[91m{}\x1b[0m", input)
+    }
+    
+    fn orange(input: &str) -> String {
+        format!("\x1b[93m{}\x1b[0m", input)
     }
 }
