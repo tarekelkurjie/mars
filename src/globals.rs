@@ -196,7 +196,7 @@ pub mod globals {
     }
 
     pub fn output_to_file(instructions: Vec<Option<Instruction>>){
-        let mut file = File::create("output.rocket").unwrap();
+        let mut file = File::create("output.txt").unwrap();
         file.write_all(pretty_print_instructions(instructions).as_bytes()).unwrap();
     }
 
