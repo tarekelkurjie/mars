@@ -1,6 +1,5 @@
 pub mod fmt {
     use std::fmt::{Display, Formatter};
-    use std::io::prelude::*;
     
     use crate::globals::globals::*;
 
