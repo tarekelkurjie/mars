@@ -4,7 +4,6 @@ pub mod fmt {
     
     use crate::globals::globals::*;
 
-
     impl Display for Instructions {
         fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
             match self {
@@ -21,10 +20,10 @@ pub mod fmt {
                 Instructions::EQ => write!(f, "EQ\n"),
                 Instructions::LT => write!(f, "LT\n"),
                 Instructions::GT => write!(f, "GT\n"),
-                Instructions::VARDECLARE(x) => write!(f, "VARDECLARE {:?}\n", x),
+                Instructions::VARDECLARE(x) => write!(f, "{}\n", x),
                 Instructions::IDENTIFIER(x) => write!(f, "IDENTIFIER {:?}\n", x),
                 Instructions::If(x) => write!(f, "IF {:?}\n", x),
-                Instructions::While(x) => write!(f, "WHILE {:?}\n", x),
+                Instructions::While(x) => write!(f, "{}", x),
                 Instructions::SPAWN(x) => write!(f, "SPAWN {:?}\n", x),
                 Instructions::SWITCH => write!(f, "SWITCH\n"),
                 Instructions::CLOSE => write!(f, "CLOSE\n"),
@@ -33,9 +32,9 @@ pub mod fmt {
                 Instructions::STACKS => write!(f, "STACKS\n"),
                 Instructions::STACKSIZE => write!(f, "STACKSIZE\n"),
                 Instructions::STACKREV => write!(f, "STACKREV\n"),
-                Instructions::STRING(x) => write!(f, "STRING {:?}\n", x),
-                Instructions::PROCEDURE(x) => {println!("{}", x); write!(f, "PROCEDURE {:?}\n", x)},
-                Instructions::IMPORT(x) => write!(f, "IMPORT {:?}\n", pretty_print_instructions(x.to_vec())),
+                Instructions::STRING(x) => write!(f, "STRING {}\n", pretty_print_instructions(x.to_vec())),
+                Instructions::PROCEDURE(x) => {write!(f, "{}\n", x)},
+                Instructions::IMPORT(x) => write!(f, "IMPORT {:?}\n{}ENDIMPORT\n\n", x.to_vec().into_iter().next().unwrap().unwrap().file_name, pretty_print_instructions(x.to_vec())),
                 Instructions::EXIT => write!(f, "EXIT\n")
             }
         }
@@ -49,15 +48,36 @@ pub mod fmt {
 
     impl Display for ProcedureDefine {
         fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-            write!(f, "PROCEDURE {}\n", self.name)?;
+            write!(f, "PROCEDURE {}", self.name)?;
             for arg in self.args.iter() {
-                write!(f, "\tARG {}\n", arg)?;
+                write!(f, "\nARG {}\n", arg)?;
             }
-            write!(f, "\n")?;
             for instruction in self.instructions.iter() {
-                write!(f, "\t{}", instruction)?;
+                write!(f, "{}", instruction)?;
             }
             write!(f, "ENDPROCEDURE\n")
+        }
+    }
+
+    impl Display for VariableDefine {
+        fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+            write!(f, "VARIABLE {}\n", self.name)?;
+            for instruction in self.instructions.iter() {
+                write!(f, "{}", instruction.clone().unwrap())?;
+            }
+            write!(f, "ENDVARIABLE\n")
+        }
+    }
+
+    impl Display for While {
+        fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+            for instruction in self.Cond.iter() {
+                write!(f, "{}", instruction.clone().unwrap())?;
+            }
+            for instruction in self.Contents.iter() {
+                write!(f, "{}", instruction.clone().unwrap())?;
+            }
+            write!(f, "ENDWHILE\n")
         }
     }
 
