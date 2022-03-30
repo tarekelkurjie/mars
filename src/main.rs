@@ -5,6 +5,7 @@ mod globals;
 mod lex;
 mod parser;
 mod interpreter;
+mod fmt;
 
 use globals::globals::*;
 use lex::lex::Lexer;
@@ -13,6 +14,9 @@ use interpreter::program::Program;
 
 use std::collections::HashMap;
 use std::env;
+
+use std::fs::File;
+use std::io::prelude::*;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -53,6 +57,8 @@ fn main() {
 
     program.current_stack = Some(program.stack as *mut Vec<DataTypes>);
 
-    program.simulate();
+
+    // program.simulate();
     // println!("{:?}", instructions);
+    output_to_file(instructions);
 }

@@ -1,4 +1,9 @@
 pub mod globals {
+    use crate::fmt::fmt::*;
+    use std::fmt::{Display, Formatter};
+    use std::fs::File;
+    use std::io::prelude::*;
+
     #[derive(Debug, Clone, PartialEq)]
     pub enum OpCodes {
         PUSH(u8), // Begin stack manipulation
@@ -190,6 +195,12 @@ pub mod globals {
         println!("{}:{} {}: {}", file, line_num, orange("warning"), message);
     }
 
+    pub fn output_to_file(instructions: Vec<Option<Instruction>>){
+        let mut file = File::create("output.rocket").unwrap();
+        file.write_all(pretty_print_instructions(instructions).as_bytes()).unwrap();
+    }
+
+
     fn red(input: &str) -> String {
         format!("\x1b[91m{}\x1b[0m", input)
     }
@@ -197,4 +208,5 @@ pub mod globals {
     fn orange(input: &str) -> String {
         format!("\x1b[93m{}\x1b[0m", input)
     }
+    
 }
