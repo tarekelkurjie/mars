@@ -1,6 +1,7 @@
 pub mod program {
     use crate::globals::globals::*;
     use std::collections::HashMap;
+    use rand::{Rng, distributions::Alphanumeric};
 
     #[derive(Debug, Clone, PartialEq)]
     pub enum StorageTypes {
@@ -10,7 +11,7 @@ pub mod program {
     }
 
     pub struct Program<'a> {
-        pub instructions: &'a Vec<Option<Instruction>>,
+        pub instructions: &'a mut Vec<Option<Instruction>>,
         pub stack: &'a mut Vec<DataTypes>,
         pub current_stack: Option<*mut Vec<DataTypes>>,
         pub data_stack: &'a mut HashMap<String, DataTypes>,
@@ -18,6 +19,7 @@ pub mod program {
         pub stack_stack: &'a mut HashMap<String, Vec<DataTypes>>,
         pub names: &'a mut HashMap<String, StorageTypes>,
         pub file: String,
+        pub current_index: usize
     }
 
     impl<'a> Program<'a> {
@@ -198,6 +200,16 @@ pub mod program {
                 },
                 Instructions::VARDECLARE(nested_struct) => {
                     if let None = self.names.get(&nested_struct.name.to_string()) {
+                        let mut instrs = Vec::new();
+                        for i in self.instructions.clone() {
+                            instrs.push(i.clone().unwrap().Instruction);
+                        }
+
+                        if instrs.contains(&Instructions::IDENTIFIER(nested_struct.name.to_string())) == false {
+                            report_warn(format!("variable {} is never used", nested_struct.name.to_string()).as_str(), instruction.file_name.as_str(), instruction.line_num.clone());
+                            return;
+                        }
+
                         self.names.insert(nested_struct.name.to_string(), StorageTypes::Variable);
                         for instr in &nested_struct.instructions {
                             self.evaluate_instruction(&instr.as_ref().unwrap());
@@ -214,6 +226,14 @@ pub mod program {
                                 Some(StorageTypes::Stack) => "Stack",
                                 None => "Unknown",
                             }, nested_struct.name).as_str(), instruction.file_name.as_str(), instruction.line_num.clone())
+                        } else {
+                            for instr in &nested_struct.instructions {
+                                self.evaluate_instruction(&instr.as_ref().unwrap());
+                            }
+                            self.data_stack.insert(
+                                nested_struct.name.to_string(),
+                                self.stack.pop().unwrap_or_else(|| report_err(format!("No data on stack to assign to variable {}", &nested_struct.name).as_str(), instruction.file_name.as_str(), instruction.line_num.clone()))
+                            );
                         }
                     }
                 },
@@ -228,6 +248,8 @@ pub mod program {
                         for instr in &data.instructions.to_vec() {   
                             self.evaluate_instruction(&instr);
                         }
+
+
 
                         for i in data.args.iter() {
                             self.data_stack.remove(&i.to_string());
@@ -315,10 +337,41 @@ pub mod program {
                 },
                 Instructions::PROCEDURE(nested_struct) => {
                     if let None = self.names.get(&nested_struct.name.to_string()) {
+                        let mut instrs = Vec::new();
+                        for i in self.instructions.clone() {
+                            instrs.push(i.clone().unwrap().Instruction);
+                        }
+
+                        if instrs.contains(&Instructions::IDENTIFIER(nested_struct.name.to_string())) == false {
+                            report_warn(format!("procedure {} is never used", nested_struct.name.to_string()).as_str(), instruction.file_name.as_str(), instruction.line_num.clone());
+                            self.instructions.remove(self.current_index);
+                            return;
+                        }
+
+                        let rng = rand::thread_rng();
+                        let stack_name = rng.sample_iter(&Alphanumeric).take(10).map(char::from).collect::<String>();
+
+                        let mut new_vec = nested_struct.instructions.to_vec();
+                        new_vec.insert(0, Instruction::new(Instructions::SPAWN(stack_name.to_string()), 0, self.file.clone()));
+                        new_vec.insert(1, Instruction::new(Instructions::STACK(stack_name.to_string()), 0, self.file.clone()));
+                        new_vec.insert(2, Instruction::new(Instructions::SWITCH, 0, self.file.clone()));
+
+                        new_vec.push(Instruction::new(Instructions::STACK("main".to_string()), 0, self.file.clone()));
+                        new_vec.push(Instruction::new(Instructions::SWITCH, 0, self.file.clone()));
+                        new_vec.push(Instruction::new(Instructions::STACK(stack_name.to_string()), 0, self.file.clone()));
+                        new_vec.push(Instruction::new(Instructions::CLOSE, 0, self.file.clone()));
+
+                        let new_struct = ProcedureDefine {
+                            name: nested_struct.name.to_string(),
+                            args: nested_struct.args.to_vec(),
+                            instructions: new_vec,
+                            returns: nested_struct.returns.clone()
+                        };
+
                         self.names.insert(nested_struct.name.to_string(), StorageTypes::Procedure);
                         self.proc_stack.insert(
-                            nested_struct.name.to_string(),
-                            nested_struct.clone()
+                            new_struct.name.to_string(),
+                            new_struct.clone()
                         );
                     } else {
                         report_err(format!("{} with name '{}' already exists", match &self.names.get(&nested_struct.name.to_string()) {
@@ -328,7 +381,7 @@ pub mod program {
                             None => "Unknown",
                         }, nested_struct.name).as_str(), instruction.file_name.as_str(), instruction.line_num.clone());
                     }
-                }
+                },
                 Instructions::IMPORT(nested_instructions) => {
                     for instr in nested_instructions {
                         self.evaluate_instruction(&instr.as_ref().unwrap());
@@ -349,7 +402,8 @@ pub mod program {
                 Vec::new()
             );
 
-            for instruction in self.instructions {
+            for instruction in self.instructions.to_vec() {
+                self.current_index += 1;
                 match &instruction {
                     Some(i) => {
                         self.evaluate_instruction(&i);

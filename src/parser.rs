@@ -29,7 +29,7 @@ pub mod parser {
                 OpCodes::EQ => return Some(Instruction::new(Instructions::EQ, op.line_num, self.file.clone())),
                 OpCodes::LT => return Some(Instruction::new(Instructions::LT, op.line_num, self.file.clone())),
                 OpCodes::GT => return Some(Instruction::new(Instructions::GT, op.line_num, self.file.clone())),
-                OpCodes::MULT => return Some(Instruction::new(Instructions::MULT, op.line_num, self.file.clone())),
+                OpCodes::STAR => return Some(Instruction::new(Instructions::MULT, op.line_num, self.file.clone())),
                 OpCodes::DIV => return Some(Instruction::new(Instructions::DIV, op.line_num, self.file.clone())),
                 OpCodes::IF => {
                     let mut if_block: Vec<Option<Instruction>> = Vec::new();
@@ -178,11 +178,19 @@ pub mod parser {
                                     if let Some(j) = i {
                                         if j.OpCode != OpCodes::END {
                                             instructions.push(self.gen_instruction_from_op(j).unwrap());
+                                        } else if j.OpCode == OpCodes::RETURN {
+                                            return Some(Instruction::new(Instructions::PROCEDURE(ProcedureDefine {
+                                                name: name.to_string(),
+                                                args: args,
+                                                instructions: instructions,
+                                                returns: true
+                                            }), op.line_num, self.file.clone()));
                                         } else {
                                             return Some(Instruction::new(Instructions::PROCEDURE(ProcedureDefine {
                                                 name: name.to_string(),
                                                 args: args,
-                                                instructions: instructions
+                                                instructions: instructions,
+                                                returns: false
                                             }), op.line_num, self.file.clone()));
                                         }
                                     }
@@ -194,11 +202,19 @@ pub mod parser {
                                 if let Some(j) = i {
                                     if j.OpCode != OpCodes::END {
                                         instructions.push(self.gen_instruction_from_op(j).unwrap());
+                                    } else if j.OpCode == OpCodes::RETURN {
+                                        return Some(Instruction::new(Instructions::PROCEDURE(ProcedureDefine {
+                                            name: name.to_string(),
+                                            args: args,
+                                            instructions: instructions,
+                                            returns: true
+                                        }), op.line_num, self.file.clone()));
                                     } else {
                                         return Some(Instruction::new(Instructions::PROCEDURE(ProcedureDefine {
                                             name: name.to_string(),
                                             args: args,
-                                            instructions: instructions
+                                            instructions: instructions,
+                                            returns: false
                                         }), op.line_num, self.file.clone()));
                                     }
                                 }
@@ -210,6 +226,7 @@ pub mod parser {
                     }
                     report_err("'procedure' statement found with unfinished definition", self.file.as_str(), op.line_num);
                 },
+                OpCodes::RETURN => report_err("'return' statement found without matching 'procedure'", self.file.as_str(), op.line_num),
                 OpCodes::IN => report_err("'in' statement found without matching 'procedure'", self.file.as_str(), op.line_num),
                 OpCodes::IMPORT(ops, file_path) => {
                     let parse = Parser {

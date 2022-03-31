@@ -137,7 +137,7 @@ pub mod lex {
                             "=" => return Some(Operation::new(OpCodes::EQ, self.line_num)),
                             "<" => return Some(Operation::new(OpCodes::LT, self.line_num)),
                             ">" => return Some(Operation::new(OpCodes::GT, self.line_num)),
-                            "*" => return Some(Operation::new(OpCodes::MULT, self.line_num)),
+                            "*" => return Some(Operation::new(OpCodes::STAR, self.line_num)),
                             "/" => return Some(Operation::new(OpCodes::DIV, self.line_num)),
                             "var" => {
                                 self.raw_data.next();
@@ -169,6 +169,7 @@ pub mod lex {
                             "stack_rev" => return Some(Operation::new(OpCodes::STACKREV, self.line_num)),
                             "procedure" => return Some(Operation::new(OpCodes::PROCEDURE, self.line_num)),
                             "in" => return Some(Operation::new(OpCodes::IN, self.line_num)),
+                            "return" => return Some(Operation::new(OpCodes::RETURN, self.line_num)),
                             "using" => {
                                 self.raw_data.next();
                                 let token: String = self.raw_data.next().expect("ERROR: No character found").to_string();
