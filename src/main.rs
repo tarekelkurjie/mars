@@ -28,15 +28,16 @@ fn main() {
         eprintln!("{}: unsupported file type \"{}\"", red("error"), args[2].split(".").last().unwrap());
         std::process::exit(1);
     } 
-    let lex = Lexer::from_file(&args[2]).unwrap();
+
+    let file_name = args[2].split("/").last().unwrap();
+
+    let lex = Lexer::from_file(file_name).unwrap();
 
     for token in lex {
         operations.push(Some(token));
     }
 
-    // println!("{:?}", operations);
-
-    let parse = Parser::new(operations.into_iter().peekable(), args[1].to_string());
+    let parse = Parser::new(operations.into_iter().peekable(), file_name.to_string());
 
     let mut instructions = Vec::new();
 
@@ -55,8 +56,8 @@ fn main() {
             proc_stack: &mut HashMap::new(),
             stack_stack: &mut HashMap::new(),
             names: &mut HashMap::new(),
-            file: args[1].to_string(),
-            current_index: 0
+            file: file_name.to_string(),
+            index: 0
         };
     
         program.current_stack = Some(program.stack as *mut Vec<DataTypes>);

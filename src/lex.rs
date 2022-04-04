@@ -145,7 +145,8 @@ pub mod lex {
                                 let name = self.get_next_char_while(token, |c| Self::is_alphanumeric(c));
 
                                 return Some(Operation::new(OpCodes::VARDECLARE(name.to_string()), self.line_num));
-                            }
+                            },
+                            "drop" =>return Some(Operation::new(OpCodes::DROP, self.line_num)),
                             "def" => return Some(Operation::new(OpCodes::DEFINE, self.line_num)),
                             "spawn" => {
                                 self.raw_data.next();

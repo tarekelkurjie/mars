@@ -2,7 +2,6 @@ pub mod globals {
     use crate::globals::fmt::*;
     use crate::globals::colorize::*;
 
-    use std::fmt::{Display, Formatter};
     use std::fs::File;
     use std::io::prelude::*;
 
@@ -28,6 +27,7 @@ pub mod globals {
         DO,
         VARDECLARE(String), // Begin variable declaration
         DEFINE,
+        DROP,
         IDENTIFIER(String), // Identifier
         SPAWN(String), // Begin spawnable stacks
         SWITCH,
@@ -61,6 +61,7 @@ pub mod globals {
         LT,
         GT,
         VARDECLARE(VariableDefine),
+        DROP(String),
         IDENTIFIER(String),
         If(IfElse),
         While(While),
@@ -242,6 +243,7 @@ pub mod fmt {
                 Instructions::LT => write!(f, "LT\n"),
                 Instructions::GT => write!(f, "GT\n"),
                 Instructions::VARDECLARE(x) => write!(f, "{}\n", x),
+                Instructions::DROP(x) => write!(f, "DROP {}\n", x),
                 Instructions::IDENTIFIER(x) => write!(f, "IDENTIFIER {:?}\n", x),
                 Instructions::If(x) => write!(f, "IF {:?}\n", x),
                 Instructions::While(x) => write!(f, "{}", x),

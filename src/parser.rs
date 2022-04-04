@@ -137,6 +137,14 @@ pub mod parser {
                     }
                     return Some(Instruction::new(Instructions::VARDECLARE(VariableDefine {name: name.to_string(), instructions: instr}), op.line_num, self.file.clone()));
                 },
+                OpCodes::DROP => {
+                    let name = match self.operations.next().unwrap_or_else(|| report_err("'drop' statement found without matching variable", self.file.as_str(), op.line_num)).unwrap().OpCode {
+                        OpCodes::IDENTIFIER(name) => name,
+                        _ => report_err("Expected identifier after 'drop'", self.file.as_str(), op.line_num)
+                    };
+
+                    return Some(Instruction::new(Instructions::DROP(name), op.line_num, self.file.clone()));
+                },
                 OpCodes::DEFINE => report_err("'def' statement found without matching variable declaration", self.file.as_str(), op.line_num),
                 OpCodes::IDENTIFIER(name) => Some(Instruction::new(Instructions::IDENTIFIER(name), op.line_num, self.file.clone())),
                 OpCodes::SPAWN(name) => Some(Instruction::new(Instructions::SPAWN(name), op.line_num, self.file.clone())),

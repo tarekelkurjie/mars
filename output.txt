@@ -16,11 +16,6 @@ IDENTIFIER "index"
 IDENTIFIER "stack_to_copy"
 STACKSIZE
 LT
-VARIABLE current
-IDENTIFIER "[index"
-IDENTIFIER "]"
-ENDVARIABLE
-
 IDENTIFIER "stack_copy"
 SWITCH
 IDENTIFIER "current"

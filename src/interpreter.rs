@@ -19,7 +19,7 @@ pub mod program {
         pub stack_stack: &'a mut HashMap<String, Vec<DataTypes>>,
         pub names: &'a mut HashMap<String, StorageTypes>,
         pub file: String,
-        pub current_index: usize
+        pub index: usize
     }
 
     impl<'a> Program<'a> {
@@ -205,11 +205,6 @@ pub mod program {
                             instrs.push(i.clone().unwrap().Instruction);
                         }
 
-                        if instrs.contains(&Instructions::IDENTIFIER(nested_struct.name.to_string())) == false {
-                            report_warn(format!("variable {} is never used", nested_struct.name.to_string()).as_str(), instruction.file_name.as_str(), instruction.line_num.clone());
-                            return;
-                        }
-
                         self.names.insert(nested_struct.name.to_string(), StorageTypes::Variable);
                         for instr in &nested_struct.instructions {
                             self.evaluate_instruction(&instr.as_ref().unwrap());
@@ -235,6 +230,13 @@ pub mod program {
                                 self.stack.pop().unwrap_or_else(|| report_err(format!("No data on stack to assign to variable {}", &nested_struct.name).as_str(), instruction.file_name.as_str(), instruction.line_num.clone()))
                             );
                         }
+                    }
+                },
+                Instructions::DROP(name) => {
+                    if let Some(StorageTypes::Variable) = self.names.get(&name.to_string()) {
+                        self.data_stack.remove(&name.to_string());
+                    } else {
+                        report_err(format!("Variable {} does not exist", name).as_str(), instruction.file_name.as_str(), instruction.line_num.clone());
                     }
                 },
                 Instructions::IDENTIFIER(data_name) => {
@@ -297,7 +299,7 @@ pub mod program {
                         if let Some(v) = top.clone() {
                             p2 = match v {
                                 DataTypes::STACKPOINTER(p) => Some(p),
-                                _ => report_err("Cannot swtich to non-pointer type", instruction.file_name.as_str(), instruction.line_num.clone()),
+                                _ => report_err("Cannot close non-pointer type", instruction.file_name.as_str(), instruction.line_num.clone()),
                             };
                         }
 
@@ -339,12 +341,16 @@ pub mod program {
                     if let None = self.names.get(&nested_struct.name.to_string()) {
                         let mut instrs = Vec::new();
                         for i in self.instructions.clone() {
+                            if let Some(Instructions::PROCEDURE(nested_struct)) = i.unwrap().Instruction {
+                                for i in nested_struct.instructions {
+                                    instrs.push(i);
+                                }
+                            }
                             instrs.push(i.clone().unwrap().Instruction);
                         }
 
                         if instrs.contains(&Instructions::IDENTIFIER(nested_struct.name.to_string())) == false {
                             report_warn(format!("procedure {} is never used", nested_struct.name.to_string()).as_str(), instruction.file_name.as_str(), instruction.line_num.clone());
-                            self.instructions.remove(self.current_index);
                             return;
                         }
 
@@ -383,9 +389,9 @@ pub mod program {
                     }
                 },
                 Instructions::IMPORT(nested_instructions) => {
-                    for instr in nested_instructions {
-                        self.evaluate_instruction(&instr.as_ref().unwrap());
-                    }
+                    for index in 0..nested_instructions.len() {
+                        self.evaluate_instruction(&nested_instructions[index].as_ref().unwrap());
+                    };
                 },
                 Instructions::EXIT => {
                     let code = self.stack.pop().unwrap_or_else(|| report_err("No exit code to exit with", instruction.file_name.as_str(), instruction.line_num));
@@ -402,13 +408,9 @@ pub mod program {
                 Vec::new()
             );
 
-            for instruction in self.instructions.to_vec() {
-                self.current_index += 1;
-                match &instruction {
-                    Some(i) => {
-                        self.evaluate_instruction(&i);
-                    },
-                    None => continue
+            for instr in self.instructions.clone() {
+                if let Some(instruction) = instr {
+                    self.evaluate_instruction(&instruction);
                 }
             }
         }
