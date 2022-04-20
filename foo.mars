@@ -1,3 +1,3 @@
 using std.mars
 
-"Hello, World!\n" eputs
+"Hello, World!\n" puts

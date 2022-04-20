@@ -240,7 +240,7 @@ pub mod program {
                     }
                 },
                 Instructions::IDENTIFIER(data_name) => {
-                    if let Some(data) = self.data_stack.get(data_name) {
+                    if let Some(data) = self.data_stack.get(data_name.as_str()) {
                         self.stack.push(data.clone());
                     } else if let Some(data) = self.proc_stack.clone().get(data_name) {
                         for i in data.args.iter() {
@@ -254,7 +254,7 @@ pub mod program {
 
 
                         for i in data.args.iter() {
-                            self.data_stack.remove(&i.to_string());
+                            self.data_stack.remove(i);
                         }
                     }
                 },
@@ -339,21 +339,6 @@ pub mod program {
                 },
                 Instructions::PROCEDURE(nested_struct) => {
                     if let None = self.names.get(&nested_struct.name.to_string()) {
-                        let mut instrs = Vec::new();
-                        for i in self.instructions.clone() {
-                            if let Some(Instructions::PROCEDURE(nested_struct)) = i.unwrap().Instruction {
-                                for i in nested_struct.instructions {
-                                    instrs.push(i);
-                                }
-                            }
-                            instrs.push(i.clone().unwrap().Instruction);
-                        }
-
-                        if instrs.contains(&Instructions::IDENTIFIER(nested_struct.name.to_string())) == false {
-                            report_warn(format!("procedure {} is never used", nested_struct.name.to_string()).as_str(), instruction.file_name.as_str(), instruction.line_num.clone());
-                            return;
-                        }
-
                         let rng = rand::thread_rng();
                         let stack_name = rng.sample_iter(&Alphanumeric).take(10).map(char::from).collect::<String>();
 

@@ -164,35 +164,40 @@ end
 
 *This whole thing will most likely be put in a procedure/macro in the future standard library*
 
-### Macros
+### Procedures
 
-Define a macro using the 'macro' keyword.
+**Create a procedure using the 'procedure' keyword**
+
 ```
-macro <name>
-    <body>
+procedure my_proc do
+    // Do something
+end
+```
+
+**Add parameters using the 'in' keyword followed by the names of the parameters you would like to add. The parameters are dynamically typed**
+
+```
+procedure print in my_str do
+    my_str puts
+end
+```
+
+**Call procedures by using the procedure name. Arguments will be popped off the stack.
+
+```
+procedure print in my_str do
+    my_str puts
 end
 
-<name> // Calls the macro
+"Hello, World!\n" print
 ```
 
-For example:
+### Import
+
+**Import files using the 'using' keyword followed by the relative path to the file you'd like to import**
+
 ```
-macro puts
-    @prev_stack this def
-    dup
-    swap
-    switch
-    stack_rev
-    @counter 0 def
-    @size stack_size def
-    while counter size < do
-        print_ascii
-        @counter counter 1 + def
-    end
-    prev_stack
-    switch
-    close
-end
+using std.mars // contains the 'puts' procedure
 
 "Hello, World!\n" puts
 ```
