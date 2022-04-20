@@ -1,6 +1,8 @@
 # Marslang
 **Stack-based interpreted language implemented in rust**
 
+*This repository has been archived*
+
 Syntax heavily inspired by [porth](https://gitlab.com/tsoding/porth)
 
 ## To-Do
