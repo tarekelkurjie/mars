@@ -1,0 +1,25 @@
+{
+    "name": "mars",
+    "displayName": "Mars",
+    "description": "Mars language support",
+    "version": "0.0.1",
+    "engines": {
+        "vscode": "^1.65.0"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "contributes": {
+        "languages": [{
+            "id": "mars",
+            "aliases": ["Mars", "mars"],
+            "extensions": [".mars"],
+            "configuration": "./language-configuration.json"
+        }],
+        "grammars": [{
+            "language": "mars",
+            "scopeName": "source.mars",
+            "path": "./syntaxes/mars.tmLanguage.json"
+        }]
+    }
+}

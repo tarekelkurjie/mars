@@ -2,25 +2,28 @@ pub mod lex {
     use crate::globals::globals::*;
     use std::vec::IntoIter;
     use std::iter::Peekable;
+    use std::path::PathBuf;
 
     use std::{fs, io};
 
     #[derive(Debug)]
     pub struct Lexer {
         raw_data: Peekable<IntoIter<char>>,
+        file: String,
         line_num: u8
     }
 
     impl Lexer {
-        pub fn from_text(text: &str) -> Self {
+        pub fn from_text(text: &str, file: String) -> Self {
             Lexer {
                 raw_data: text.chars().collect::<Vec<_>>().into_iter().peekable(),
-                line_num: 0
+                line_num: 1,
+                file
             }
         }
 
         pub fn from_file(file_path: &str) -> io::Result<Self> {
-            Ok(Self::from_text(&fs::read_to_string(file_path)?))
+            Ok(Self::from_text(&fs::read_to_string(file_path)?, file_path.to_string()))
         }
 
         fn get_next_char_while(&mut self, raw_token: String, cond: fn(char) -> bool) -> String {
@@ -40,6 +43,8 @@ pub mod lex {
         fn is_alphanumeric(c: char) -> bool {
             return c.is_alphanumeric() || c == '_';
         }
+
+        fn is_file_path(c: char) -> bool {return !c.is_whitespace(); }
 
         fn get_numeric(&mut self, c: char) -> String {
             let mut res: String = c.to_string();
@@ -69,17 +74,12 @@ pub mod lex {
                         if let Some(char) = self.raw_data.next() {
                             if char == '/' {
                                 while let Some(c) = self.raw_data.next() {
-                                    if c != '\n' { continue; } else { break; }
+                                    if c != '\n' { continue; } else { self.line_num += 1; break; }
                                 }
                             }
                         }
                     } else if first_char == '\n' {
                         self.line_num += 1;
-                    } else if first_char == '@' { // Variable declaration
-                        let token: String = self.raw_data.next().expect("ERROR: No character found").to_string();
-                        let name = self.get_next_char_while(token, |c| Self::is_alphanumeric(c));
-
-                        return Some(Operation::new(OpCodes::VARDECLARE(name.to_string()), self.line_num));
                     } else if first_char == '"' { // String literal
                         let mut res: String = self.raw_data.next().expect("ERROR: Unexpected character \"").to_string();
                         while self.raw_data.peek() != Some(&'"') {
@@ -137,8 +137,16 @@ pub mod lex {
                             "=" => return Some(Operation::new(OpCodes::EQ, self.line_num)),
                             "<" => return Some(Operation::new(OpCodes::LT, self.line_num)),
                             ">" => return Some(Operation::new(OpCodes::GT, self.line_num)),
-                            "*" => return Some(Operation::new(OpCodes::MULT, self.line_num)),
+                            "*" => return Some(Operation::new(OpCodes::STAR, self.line_num)),
                             "/" => return Some(Operation::new(OpCodes::DIV, self.line_num)),
+                            "var" => {
+                                self.raw_data.next();
+                                let token: String = self.raw_data.next().expect("ERROR: No character found").to_string();
+                                let name = self.get_next_char_while(token, |c| Self::is_alphanumeric(c));
+
+                                return Some(Operation::new(OpCodes::VARDECLARE(name.to_string()), self.line_num));
+                            },
+                            "drop" =>return Some(Operation::new(OpCodes::DROP, self.line_num)),
                             "def" => return Some(Operation::new(OpCodes::DEFINE, self.line_num)),
                             "spawn" => {
                                 self.raw_data.next();
@@ -160,13 +168,29 @@ pub mod lex {
                             "stacks" => return Some(Operation::new(OpCodes::STACKS, self.line_num)),
                             "stack_size" => return Some(Operation::new(OpCodes::STACKSIZE, self.line_num)),
                             "stack_rev" => return Some(Operation::new(OpCodes::STACKREV, self.line_num)),
-                            "macro" => {
+                            "procedure" => return Some(Operation::new(OpCodes::PROCEDURE, self.line_num)),
+                            "in" => return Some(Operation::new(OpCodes::IN, self.line_num)),
+                            "return" => return Some(Operation::new(OpCodes::RETURN, self.line_num)),
+                            "using" => {
                                 self.raw_data.next();
                                 let token: String = self.raw_data.next().expect("ERROR: No character found").to_string();
-                                let name = self.get_next_char_while(token, |c| Self::is_alphanumeric(c));
+                                let value = self.get_next_char_while(token, |c| Self::is_file_path(c));
 
-                                return Some(Operation::new(OpCodes::MACRO(name), self.line_num));
-                            }
+                                let mut res = Vec::new();
+
+                                let mut absolute_path = std::env::current_dir().ok()?;
+                                absolute_path.push(self.file.to_string());
+                                let mut path = PathBuf::from(absolute_path.parent().unwrap());
+                                path.push(value.to_string());
+
+                                let nested_lex = Self::from_file(path.to_str().unwrap()).unwrap();
+                                for item in nested_lex {
+                                    res.push(Some(item));
+                                }
+
+                                return Some(Operation::new(OpCodes::IMPORT(res, value), self.line_num));
+                            },
+                            "exit" => return Some(Operation::new(OpCodes::EXIT, self.line_num)),
                             _ => return Some(Operation::new(OpCodes::IDENTIFIER(identifier.trim().to_string()), self.line_num))
                         }
                     }

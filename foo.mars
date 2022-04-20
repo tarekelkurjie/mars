@@ -1,6 +1,3 @@
-macro do_err
-    123
-    switch
-end
+using std.mars
 
-do_err
+"Hello, World!\n" puts

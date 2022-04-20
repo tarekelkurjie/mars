@@ -1,0 +1,39 @@
+procedure copy_stack in stack_to_copy do
+    stack_to_copy switch
+    spawn replacement_stack
+    var stack_copy dup def
+
+    var index 0 def
+    while index stack_to_copy stack_size < do
+        stack_copy switch current
+        stack_to_copy switch
+
+        var index index 1 + def
+    end
+    this_stack switch
+    stack_copy
+end
+
+
+// Prints string
+// @param string: pointer to stack containing string
+procedure puts in string do
+    var prev_stack this def
+    string dup
+    switch
+    stack_rev
+    var counter 0 def
+    var size stack_size def
+    while counter size < do
+        print_ascii
+        var counter counter 1 + def
+    end
+    prev_stack
+    switch
+    close
+end
+
+procedure eputs in string do
+    string puts
+    1 exit
+end
